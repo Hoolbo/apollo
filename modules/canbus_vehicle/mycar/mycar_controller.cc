@@ -195,6 +195,11 @@ void MycarController::Brake(double brake) {
     return;
   }
   // Mycar specific brake logic
+  if (brake > 1.0) {
+    drive_motor_563_->set_drive_motor_speed(0.0);
+    drive_motor_563_->set_drive_motor_enable(true);
+    drive_motor_563_->set_drive_motor_mode(0);
+  }
 }
 
 void MycarController::Throttle(double throttle) {
@@ -204,9 +209,21 @@ void MycarController::Throttle(double throttle) {
     return;
   }
   // Mycar specific throttle logic
+  // Map throttle (0-100) to speed (m/s)
+  // Assuming max speed is 10 m/s (~36 km/h) for teleop
+  const double kMaxSpeedMps = 10.0;
+  double speed_mps = (throttle / 100.0) * kMaxSpeedMps;
+
+  drive_motor_563_->set_drive_motor_speed(speed_mps * 3.6);  // Convert to km/h
+  drive_motor_563_->set_drive_motor_enable(true);
+  drive_motor_563_->set_drive_motor_mode(0);  // 0 for Speed Mode
 }
 
 void MycarController::Speed(double speed) {
+  // Ignore 0 speed command from default ControlCommand if throttle was used
+  if (std::abs(speed) < 1e-6) {
+    return;
+  }
   AINFO << "MycarController::Speed called with: " << speed;
   drive_motor_563_->set_drive_motor_speed(speed * 3.6);
   drive_motor_563_->set_drive_motor_enable(true);
