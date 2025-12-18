@@ -1,11 +1,12 @@
 vehicle_parameter {
+  brand: MYCAR
   max_enable_fail_attempt: 5
   driving_mode: COMPLETE_AUTO_DRIVE
 }
 
 can_card_parameter {
-  brand: HERMES_CAN
-  type: PCI_CARD
+  brand: SOCKET_CAN_RAW
+  type: USB_CARD
   channel_id: CHANNEL_ID_ZERO
   num_ports: 8
   interface: NATIVE

@@ -85,3 +85,21 @@ tools/FlameGraph
 modules/studio_connector
 
 #WORKSPACE
+
+# Large data models
+modules/perception/data/models/
+
+# Dumps
+dumps/
+
+# Mac junk
+__MACOSX/
+
+# ROS/Catkin build artifacts
+**/build/
+**/devel/
+*.workspace
+*.user
+
+# Install directory
+dev/install/

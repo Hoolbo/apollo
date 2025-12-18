@@ -1,0 +1,9 @@
+throttle: 0.0
+brake: 0.0
+steering_target: 15.0
+speed: 5.0
+gear_location: GEAR_DRIVE
+header {
+  timestamp_sec: 0.0
+  module_name: "canbus_tester"
+}

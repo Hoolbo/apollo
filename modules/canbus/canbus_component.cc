@@ -96,7 +96,7 @@ bool CanbusComponent::Init() {
   if (FLAGS_receive_guardian) {
     guardian_cmd_reader_ = node_->CreateReader<GuardianCommand>(
         guardian_cmd_reader_config,
-        [this](const std::shared_ptr<GuardianCommand> &cmd) {
+        [this](const std::shared_ptr<GuardianCommand>& cmd) {
           ADEBUG << "Received guardian data: run canbus callback.";
           const auto start_time = Time::Now().ToMicrosecond();
           OnGuardianCommand(*cmd);
@@ -109,8 +109,8 @@ bool CanbusComponent::Init() {
   } else {
     control_command_reader_ = node_->CreateReader<ControlCommand>(
         control_cmd_reader_config,
-        [this](const std::shared_ptr<ControlCommand> &cmd) {
-          ADEBUG << "Received control data: run canbus callback.";
+        [this](const std::shared_ptr<ControlCommand>& cmd) {
+          AINFO << "Received control data: run canbus callback.";
           const auto start_time = Time::Now().ToMicrosecond();
           OnControlCommand(*cmd);
           const auto end_time = Time::Now().ToMicrosecond();
@@ -124,7 +124,7 @@ bool CanbusComponent::Init() {
   // init chassis cmd reader
   chassis_command_reader_ = node_->CreateReader<ChassisCommand>(
       chassis_cmd_reader_config,
-      [this](const std::shared_ptr<ChassisCommand> &cmd) {
+      [this](const std::shared_ptr<ChassisCommand>& cmd) {
         ADEBUG << "Received control data: run canbus callback.";
         OnChassisCommand(*cmd);
       });
@@ -164,7 +164,7 @@ bool CanbusComponent::Proc() {
 
   if (FLAGS_receive_guardian) {
     guardian_cmd_reader_->Observe();
-    const auto &guardian_cmd_msg = guardian_cmd_reader_->GetLatestObserved();
+    const auto& guardian_cmd_msg = guardian_cmd_reader_->GetLatestObserved();
     if (guardian_cmd_msg == nullptr) {
       AERROR << "guardian cmd msg is not ready!";
     } else {
@@ -172,7 +172,7 @@ bool CanbusComponent::Proc() {
     }
   } else {
     control_command_reader_->Observe();
-    const auto &control_cmd_msg = control_command_reader_->GetLatestObserved();
+    const auto& control_cmd_msg = control_command_reader_->GetLatestObserved();
     if (control_cmd_msg == nullptr) {
       AERROR << "control cmd msg is not ready!";
     } else {
@@ -212,7 +212,7 @@ bool CanbusComponent::Proc() {
   return true;
 }
 
-void CanbusComponent::OnControlCommand(const ControlCommand &control_command) {
+void CanbusComponent::OnControlCommand(const ControlCommand& control_command) {
   // us : microsecord = 1e-3 millisecond = 1e-6 second
   double current_timestamp = Time::Now().ToMicrosecond();
   // if command coming too soon, just ignore it.
@@ -234,7 +234,7 @@ void CanbusComponent::OnControlCommand(const ControlCommand &control_command) {
 }
 
 void CanbusComponent::OnControlCommandCheck(
-    const ControlCommand &control_command) {
+    const ControlCommand& control_command) {
   // us : microsecord = 1e-3 millisecond = 1e-6 second
   double current_timestamp = Time::Now().ToMicrosecond();
   // cmd_time_diff: s
@@ -265,14 +265,14 @@ void CanbusComponent::OnControlCommandCheck(
 }
 
 void CanbusComponent::OnGuardianCommand(
-    const GuardianCommand &guardian_command) {
+    const GuardianCommand& guardian_command) {
   if (!is_control_cmd_time_delay_) {
     OnControlCommand(guardian_command.control_command());
   }
 }
 
 void CanbusComponent::OnGuardianCommandCheck(
-    const GuardianCommand &guardian_command) {
+    const GuardianCommand& guardian_command) {
   // us : microsecord = 1e-3 millisecond = 1e-6 second
   double current_timestamp = Time::Now().ToMicrosecond();
   // cmd_time_diff: s
@@ -303,7 +303,7 @@ void CanbusComponent::OnGuardianCommandCheck(
   }
 }
 
-void CanbusComponent::OnChassisCommand(const ChassisCommand &chassis_command) {
+void CanbusComponent::OnChassisCommand(const ChassisCommand& chassis_command) {
   // us : microsecord = 1e-3 millisecond = 1e-6 second
   int64_t current_timestamp = Time::Now().ToMicrosecond();
   // if command coming too soon, just ignore it.
@@ -328,7 +328,7 @@ void CanbusComponent::OnChassisCommand(const ChassisCommand &chassis_command) {
   vehicle_object_->UpdateCommand(&chassis_command);
 }
 
-common::Status CanbusComponent::OnError(const std::string &error_msg) {
+common::Status CanbusComponent::OnError(const std::string& error_msg) {
   monitor_logger_buffer_.ERROR(error_msg);
   return ::apollo::common::Status(ErrorCode::CANBUS_ERROR, error_msg);
 }
@@ -361,7 +361,7 @@ void CanbusComponent::ProcessTimeoutByClearCanSender() {
 }
 
 void CanbusComponent::ProcessGuardianCmdTimeout(
-    GuardianCommand *guardian_command) {
+    GuardianCommand* guardian_command) {
   AINFO << "Into cmd timeout process, set estop.";
   guardian_command->mutable_control_command()->set_throttle(0.0);
   guardian_command->mutable_control_command()->set_steering_target(0.0);

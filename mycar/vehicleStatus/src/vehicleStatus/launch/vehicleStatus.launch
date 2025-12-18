@@ -1,0 +1,17 @@
+﻿<launch>
+ <arg name="device_type" default="4" /> <!-- 设备类型 -->
+ <arg name="device_index" default="0" /> <!-- 设备号 -->
+ <arg name="channel_index" default="0" /> <!-- 通道号 -->
+ <arg name="baund_rate" default="500" /> <!-- 波特率 -->
+ <arg name="remote_flag" default="false" /> <!-- 是否为远程帧 -->	
+ <arg name="extern_flag" default="false" /> <!-- 是否为扩展帧 -->	
+	
+ <node pkg="vehicleStatus" type="vehicleStatus" name="vehicleStatus" output="screen">
+  <param name="device_type" value="$(arg device_type)" />
+  <param name="device_index" value="$(arg device_index)" />
+  <param name="channel_index" value="$(arg channel_index)" />
+  <param name="baund_rate" value="$(arg baund_rate)" />
+  <param name="remote_flag" value="$(arg remote_flag)" />				
+  <param name="extern_flag" value="$(arg extern_flag)" />			    
+ </node> 	
+</launch>

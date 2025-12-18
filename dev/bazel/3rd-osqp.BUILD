@@ -1,0 +1,1 @@
+/opt/apollo/neo/packages/3rd-osqp/latest/3rd-osqp.BUILD

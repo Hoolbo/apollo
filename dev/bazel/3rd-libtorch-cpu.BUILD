@@ -1,0 +1,1 @@
+/opt/apollo/neo/packages/3rd-libtorch-cpu/latest/3rd-libtorch-cpu.BUILD

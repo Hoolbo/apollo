@@ -1,0 +1,1 @@
+/opt/apollo/neo/packages/3rd-libtorch-gpu/latest/3rd-libtorch-gpu.BUILD
