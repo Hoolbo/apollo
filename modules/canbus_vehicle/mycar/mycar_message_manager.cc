@@ -4,6 +4,7 @@
 #include "modules/canbus_vehicle/mycar/protocol/acu_eps_547.h"
 #include "modules/canbus_vehicle/mycar/protocol/drivemotor_acu_572.h"
 #include "modules/canbus_vehicle/mycar/protocol/eps_acu_556.h"
+#include "modules/canbus_vehicle/mycar/protocol/vcu_acu_general_524.h"
 
 namespace apollo {
 namespace canbus {
@@ -17,6 +18,7 @@ MycarMessageManager::MycarMessageManager() {
   // Feedback Messages
   AddRecvProtocolData<DrivemotorAcu572, true>();
   AddRecvProtocolData<EpsAcu556, true>();
+  AddRecvProtocolData<VcuAcuGeneral524, true>();
 }
 
 MycarMessageManager::~MycarMessageManager() {}

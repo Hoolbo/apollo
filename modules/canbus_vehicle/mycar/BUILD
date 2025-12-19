@@ -15,6 +15,7 @@ apollo_cc_library(
         "protocol/acu_eps_547.cc",
         "protocol/drivemotor_acu_572.cc",
         "protocol/eps_acu_556.cc",
+        "protocol/vcu_acu_general_524.cc",
     ],
     hdrs = [
         "mycar_controller.h",
@@ -24,6 +25,7 @@ apollo_cc_library(
         "protocol/acu_eps_547.h",
         "protocol/drivemotor_acu_572.h",
         "protocol/eps_acu_556.h",
+        "protocol/vcu_acu_general_524.h",
     ],
     copts = CANBUS_COPTS,
     alwayslink = True,

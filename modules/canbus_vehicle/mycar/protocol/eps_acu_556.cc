@@ -1,6 +1,7 @@
 #include "modules/canbus_vehicle/mycar/protocol/eps_acu_556.h"
 
 #include "glog/logging.h"
+
 #include "modules/drivers/canbus/common/byte.h"
 #include "modules/drivers/canbus/common/canbus_consts.h"
 

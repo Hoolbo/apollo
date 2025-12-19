@@ -8,18 +8,17 @@ namespace apollo {
 namespace canbus {
 namespace mycar {
 
-class EpsAcu556
+class VcuAcuGeneral524
     : public ::apollo::drivers::canbus::ProtocolData<::apollo::canbus::Mycar> {
  public:
   static const int32_t ID;
-
   void Parse(const std::uint8_t* bytes, int32_t length,
-             Mycar* chassis) const override;
+             ::apollo::canbus::Mycar* chassis) const override;
 
  private:
-  double eps_angle(const std::uint8_t* bytes, int32_t length) const;
-  bool eps_enable(const std::uint8_t* bytes, int32_t length) const;
-  int32_t eps_error(const std::uint8_t* bytes, int32_t length) const;
+  bool acu_error(const std::uint8_t* bytes, int32_t length) const;
+  bool acu_remote_control(const std::uint8_t* bytes, int32_t length) const;
+  bool acu_receive_info(const std::uint8_t* bytes, int32_t length) const;
 };
 
 }  // namespace mycar

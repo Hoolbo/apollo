@@ -78,8 +78,8 @@ ErrorCode MycarController::Init(
 
   AINFO << "MycarController is initialized.";
 
-  // Force driving mode to COMPLETE_AUTO_DRIVE to enable control
-  set_driving_mode(Chassis::COMPLETE_AUTO_DRIVE);
+  // Default to MANUAL on startup
+  set_driving_mode(Chassis::COMPLETE_MANUAL);
 
   is_initialized_ = true;
   return ErrorCode::OK;
@@ -134,29 +134,44 @@ Chassis MycarController::chassis() {
   // 2. Report Chassis Steering
   if (chassis_detail.has_eps_acu_556() &&
       chassis_detail.eps_acu_556().has_eps_angle()) {
-    chassis_.set_steering_percentage(chassis_detail.eps_acu_556().eps_angle());
+    double eps_angle = chassis_detail.eps_acu_556().eps_angle();
+    // Convert deg to percentage [-100, 100]
+    // vehicle_params_.max_steer_angle() is in radians
+    double max_steer_angle_deg =
+        vehicle_params_.max_steer_angle() * 180.0 / 3.1415926535;
+    if (max_steer_angle_deg > 0) {
+      double steering_percentage = (eps_angle / max_steer_angle_deg) * 100.0;
+      chassis_.set_steering_percentage(
+          ::apollo::drivers::canbus::ProtocolData<
+              ::apollo::canbus::Mycar>::BoundedValue(-100.0, 100.0,
+                                                     steering_percentage));
+    }
   }
 
   // 3. Driving Mode
-  /*
-  bool drive_enable = false;
-  if (chassis_detail.has_drivemotor_acu_572()) {
-    drive_enable = chassis_detail.drivemotor_acu_572().drive_motor_enable();
+  if (chassis_detail.has_vcu_acu_general_524() &&
+      chassis_detail.vcu_acu_general_524().has_acu_remote_control()) {
+    if (chassis_detail.vcu_acu_general_524().acu_remote_control()) {
+      chassis_.set_driving_mode(Chassis::COMPLETE_AUTO_DRIVE);
+      set_driving_mode(Chassis::COMPLETE_AUTO_DRIVE);
+    } else {
+      chassis_.set_driving_mode(Chassis::COMPLETE_MANUAL);
+      set_driving_mode(Chassis::COMPLETE_MANUAL);
+    }
+  } else {
+    // Default or fallback
+    chassis_.set_driving_mode(driving_mode());
   }
-  */
 
-  // Force AUTO_DRIVE for testing purposes to allow teleop commands
-  // Force AUTO_DRIVE for testing purposes to allow teleop commands
-  chassis_.set_driving_mode(Chassis::COMPLETE_AUTO_DRIVE);
+  // 4. Error Code
+  if (chassis_detail.has_vcu_acu_general_524() &&
+      chassis_detail.vcu_acu_general_524().acu_error()) {
+    chassis_.set_error_code(Chassis::CHASSIS_ERROR);
+  } else {
+    chassis_.set_error_code(Chassis::NO_ERROR);
+  }
 
-  // Also force the internal controller state to AUTO
-  set_driving_mode(Chassis::COMPLETE_AUTO_DRIVE);
-
-  /*
-  // --- BRAIN HEARTBEAT TEST REMOVED ---
-  */
-
-  // 4. Gear
+  // 5. Gear
   if (chassis_detail.has_drivemotor_acu_572()) {
     auto shift = chassis_detail.drivemotor_acu_572().drive_motor_shift();
     if (shift == ::apollo::canbus::MycarDrivemotorAcu572::SHIFT_D)
@@ -169,21 +184,18 @@ Chassis MycarController::chassis() {
       chassis_.set_gear_location(Chassis::GEAR_NEUTRAL);
   }
 
-  // 19 add check_response signal
-  if (chassis_detail.has_eps_acu_556() &&
-      chassis_detail.eps_acu_556().has_eps_enable()) {
+  // 6. Check response signals
+  if (chassis_detail.has_eps_acu_556()) {
     chassis_.mutable_check_response()->set_is_eps_online(
         chassis_detail.eps_acu_556().eps_enable());
+  }
+  if (chassis_detail.has_drivemotor_acu_572()) {
+    chassis_.mutable_check_response()->set_is_vcu_online(
+        chassis_detail.drivemotor_acu_572().drive_motor_enable());
   }
 
   // Force Update loop to ensure CAN messages are sent periodically
   can_sender_->Update();
-
-  if (chassis_detail.has_drivemotor_acu_572() &&
-      chassis_detail.drivemotor_acu_572().has_drive_motor_enable()) {
-    chassis_.mutable_check_response()->set_is_vcu_online(
-        chassis_detail.drivemotor_acu_572().drive_motor_enable());
-  }
 
   return chassis_;
 }
