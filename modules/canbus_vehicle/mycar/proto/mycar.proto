@@ -16,6 +16,7 @@ message Mycar {
 message MycarAcuEps547 {
   optional bool eps_enable = 1;
   optional double eps_angle = 2; // deg
+  optional double eps_angle_speed = 3; // Unused in current spec
 }
 
 message MycarAcuDrivemotor563 {
@@ -36,6 +37,7 @@ message MycarEpsAcu556 {
   optional int32 eps_error = 1;
   optional bool eps_enable = 2;
   optional double eps_angle = 3; // deg
+  optional double eps_angle_speed = 4; // Unused in current spec
 }
 
 message MycarDrivemotorAcu572 {
@@ -59,4 +61,5 @@ message MycarVcuAcuGeneral524 {
   optional bool acu_error = 1;
   optional bool acu_remote_control = 2;
   optional bool acu_receive_info = 3;
+  optional bool acu_control_mode = 4;
 }

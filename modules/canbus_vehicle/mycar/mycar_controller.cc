@@ -149,9 +149,12 @@ Chassis MycarController::chassis() {
   }
 
   // 3. Driving Mode
-  if (chassis_detail.has_vcu_acu_general_524() &&
-      chassis_detail.vcu_acu_general_524().has_acu_remote_control()) {
-    if (chassis_detail.vcu_acu_general_524().acu_remote_control()) {
+  if (chassis_detail.has_vcu_acu_general_524()) {
+    auto vcu_msg = chassis_detail.vcu_acu_general_524();
+    if (vcu_msg.has_acu_remote_control() && vcu_msg.acu_remote_control()) {
+      chassis_.set_driving_mode(Chassis::COMPLETE_MANUAL);
+      set_driving_mode(Chassis::COMPLETE_MANUAL);
+    } else if (vcu_msg.has_acu_control_mode() && vcu_msg.acu_control_mode()) {
       chassis_.set_driving_mode(Chassis::COMPLETE_AUTO_DRIVE);
       set_driving_mode(Chassis::COMPLETE_AUTO_DRIVE);
     } else {

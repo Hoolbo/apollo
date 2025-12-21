@@ -26,6 +26,7 @@ void AcuDrivemotor563::UpdateData(uint8_t* data) {
         << drive_motor_speed_;
 
   set_acu_drivemotor_speed(data, drive_motor_speed_);
+  set_acu_drivemotor_torque(data, drive_motor_torque_);
   set_acu_drivemotor_select_shift(data, drive_motor_shift_);
   set_acu_drivemotor_select_mode(data, drive_motor_mode_);
   set_acu_drivemotor_select_enable(data, drive_motor_enable_);
@@ -33,6 +34,7 @@ void AcuDrivemotor563::UpdateData(uint8_t* data) {
 
 void AcuDrivemotor563::Reset() {
   drive_motor_speed_ = 0.0;
+  drive_motor_torque_ = 0.0;
   drive_motor_shift_ = MycarAcuDrivemotor563::SHIFT_P;
   drive_motor_mode_ = 0;  // Speed control default?
   drive_motor_enable_ = 0;
@@ -48,6 +50,19 @@ void AcuDrivemotor563::set_acu_drivemotor_speed(uint8_t* data, double speed) {
   Byte frame(data + 5);
   frame.set_value(x, 0, 8);
   Byte frame_high(data + 6);
+  frame_high.set_value(x >> 8, 0, 8);
+}
+
+void AcuDrivemotor563::set_acu_drivemotor_torque(uint8_t* data, double torque) {
+  // DBC: 24|16@1+ (1,0) [0|0]
+  // Byte 3 (low) and Byte 4 (high).
+  // Range typically 0-65535 for 16 bit unsigned
+  torque = ProtocolData::BoundedValue(0.0, 65535.0, torque);
+  int32_t x = static_cast<int32_t>(torque);
+
+  Byte frame(data + 3);
+  frame.set_value(x, 0, 8);
+  Byte frame_high(data + 4);
   frame_high.set_value(x >> 8, 0, 8);
 }
 

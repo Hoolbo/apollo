@@ -25,6 +25,14 @@ void DrivemotorAcu572::Parse(const std::uint8_t* bytes, int32_t length,
   // Parse other flags...
   chassis->mutable_drivemotor_acu_572()->set_drive_motor_enable(
       drive_motor_enable(bytes, length));
+  chassis->mutable_drivemotor_acu_572()->set_drive_motor_reply(
+      drive_motor_reply(bytes, length));
+  chassis->mutable_drivemotor_acu_572()->set_drive_motor_mode(
+      drive_motor_mode(bytes, length));
+  chassis->mutable_drivemotor_acu_572()->set_drive_motor_lock(
+      drive_motor_lock(bytes, length));
+  chassis->mutable_drivemotor_acu_572()->set_drive_motor_stop(
+      drive_motor_stop(bytes, length));
 }
 
 double DrivemotorAcu572::drive_motor_speed(const std::uint8_t* bytes,
@@ -76,6 +84,30 @@ MycarDrivemotorAcu572::ShiftType DrivemotorAcu572::drive_motor_shift(
 bool DrivemotorAcu572::drive_motor_enable(const std::uint8_t* bytes,
                                           int32_t length) const {
   Byte frame(bytes + 7);
+  return frame.is_bit_1(0);
+}
+
+bool DrivemotorAcu572::drive_motor_reply(const std::uint8_t* bytes,
+                                         int32_t length) const {
+  Byte frame(bytes + 7);
+  return frame.is_bit_1(3);
+}
+
+bool DrivemotorAcu572::drive_motor_mode(const std::uint8_t* bytes,
+                                        int32_t length) const {
+  Byte frame(bytes + 7);
+  return frame.is_bit_1(1);
+}
+
+bool DrivemotorAcu572::drive_motor_lock(const std::uint8_t* bytes,
+                                        int32_t length) const {
+  Byte frame(bytes + 7);
+  return frame.is_bit_1(2);
+}
+
+bool DrivemotorAcu572::drive_motor_stop(const std::uint8_t* bytes,
+                                        int32_t length) const {
+  Byte frame(bytes + 0);
   return frame.is_bit_1(0);
 }
 

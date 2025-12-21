@@ -17,6 +17,9 @@ void EpsAcu556::Parse(const std::uint8_t* bytes, int32_t length,
                       Mycar* chassis) const {
   chassis->mutable_eps_acu_556()->set_eps_angle(eps_angle(bytes, length));
   chassis->mutable_eps_acu_556()->set_eps_enable(eps_enable(bytes, length));
+  chassis->mutable_eps_acu_556()->set_eps_error(eps_error(bytes, length));
+  chassis->mutable_eps_acu_556()->set_eps_angle_speed(
+      eps_angle_speed(bytes, length));
 }
 
 double EpsAcu556::eps_angle(const std::uint8_t* bytes, int32_t length) const {
@@ -33,6 +36,20 @@ bool EpsAcu556::eps_enable(const std::uint8_t* bytes, int32_t length) const {
   // DBC: 56|1@1+ (Byte 7 bit 0)
   Byte frame(bytes + 7);
   return frame.is_bit_1(0);
+}
+
+int32_t EpsAcu556::eps_error(const std::uint8_t* bytes, int32_t length) const {
+  Byte frame(bytes + 0);
+  return frame.get_byte(0, 8);
+}
+
+double EpsAcu556::eps_angle_speed(const std::uint8_t* bytes,
+                                  int32_t length) const {
+  // DBC: 32|8@1+ (2.0,0) [0|180]
+  // Byte 4. StartBit 32. Length 8.
+  Byte frame(bytes + 4);
+  int32_t value = frame.get_byte(0, 8);
+  return value * 2.0;
 }
 
 }  // namespace mycar

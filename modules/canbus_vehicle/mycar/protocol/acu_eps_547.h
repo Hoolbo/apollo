@@ -1,19 +1,20 @@
 #pragma once
 
-#include "modules/drivers/canbus/can_comm/protocol_data.h"
 #include "modules/canbus_vehicle/mycar/proto/mycar.pb.h"
+
+#include "modules/drivers/canbus/can_comm/protocol_data.h"
 
 namespace apollo {
 namespace canbus {
 namespace mycar {
 
-class AcuEps547 : public ::apollo::drivers::canbus::ProtocolData<
-                      ::apollo::canbus::Mycar> {
+class AcuEps547
+    : public ::apollo::drivers::canbus::ProtocolData<::apollo::canbus::Mycar> {
  public:
   static const int32_t ID;
 
   AcuEps547();
-  
+
   void Parse(const std::uint8_t* bytes, int32_t length,
              Mycar* chassis) const override;
 
@@ -27,9 +28,11 @@ class AcuEps547 : public ::apollo::drivers::canbus::ProtocolData<
  private:
   void set_acu_eps_angle(uint8_t* data, double angle);
   void set_acu_eps_enable(uint8_t* data, int enable);
+  void set_acu_eps_angle_speed(uint8_t* data, double speed);
 
   double eps_angle_ = 0.0;
   int eps_enable_ = 0;
+  double eps_angle_speed_ = 0.0;
 };
 
 }  // namespace mycar

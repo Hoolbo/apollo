@@ -20,6 +20,7 @@ class EpsAcu556
   double eps_angle(const std::uint8_t* bytes, int32_t length) const;
   bool eps_enable(const std::uint8_t* bytes, int32_t length) const;
   int32_t eps_error(const std::uint8_t* bytes, int32_t length) const;
+  double eps_angle_speed(const std::uint8_t* bytes, int32_t length) const;
 };
 
 }  // namespace mycar
