@@ -177,9 +177,9 @@ Chassis MycarController::chassis() {
   // 5. Gear
   if (chassis_detail.has_drivemotor_acu_572()) {
     auto shift = chassis_detail.drivemotor_acu_572().drive_motor_shift();
-    if (shift == ::apollo::canbus::MycarDrivemotorAcu572::SHIFT_D)
+    if (shift == ::apollo::canbus::MycarDrivemotorAcu572::SHIFT_R)
       chassis_.set_gear_location(Chassis::GEAR_DRIVE);
-    else if (shift == ::apollo::canbus::MycarDrivemotorAcu572::SHIFT_R)
+    else if (shift == ::apollo::canbus::MycarDrivemotorAcu572::SHIFT_D)
       chassis_.set_gear_location(Chassis::GEAR_REVERSE);
     else if (shift == ::apollo::canbus::MycarDrivemotorAcu572::SHIFT_P)
       chassis_.set_gear_location(Chassis::GEAR_PARKING);
@@ -226,7 +226,7 @@ void MycarController::Throttle(double throttle) {
   // Mycar specific throttle logic
   // Map throttle (0-100) to speed (m/s)
   // Assuming max speed is 10 m/s (~36 km/h) for teleop
-  const double kMaxSpeedMps = 10.0;
+  const double kMaxSpeedMps = 2.0;
   double speed_mps = (throttle / 100.0) * kMaxSpeedMps;
 
   drive_motor_563_->set_drive_motor_speed(speed_mps * 3.6);  // Convert to km/h
@@ -248,7 +248,9 @@ void MycarController::Speed(double speed) {
 void MycarController::Steer(double angle) {
   AINFO << "MycarController::Steer called with: " << angle;
   const double max_angle = vehicle_params_.max_steer_angle();
-  const double target_angle = (angle / 100.0) * max_angle * (180.0 / 3.1415926);
+  //乘reverse因为实际车辆的转向和CAN消息的转向相反
+  int reverse = -1;
+  const double target_angle = reverse * (angle / 100.0) * max_angle * (180.0 / 3.1415926);
   eps_547_->set_eps_angle(target_angle);
   eps_547_->set_eps_enable(true);
 }
@@ -265,10 +267,10 @@ void MycarController::Gear(Chassis::GearPosition gear_position) {
 
   if (gear_position == Chassis::GEAR_DRIVE)
     drive_motor_563_->set_drive_motor_shift(
-        ::apollo::canbus::MycarAcuDrivemotor563::SHIFT_D);
+        ::apollo::canbus::MycarAcuDrivemotor563::SHIFT_R);
   else if (gear_position == Chassis::GEAR_REVERSE)
     drive_motor_563_->set_drive_motor_shift(
-        ::apollo::canbus::MycarAcuDrivemotor563::SHIFT_R);
+        ::apollo::canbus::MycarAcuDrivemotor563::SHIFT_D);
   else if (gear_position == Chassis::GEAR_PARKING)
     drive_motor_563_->set_drive_motor_shift(
         ::apollo::canbus::MycarAcuDrivemotor563::SHIFT_P);

@@ -54,9 +54,8 @@ else
     fi
 
     # 获取 ID 并写入 udev 规则
-    UDEV_INFO=$(udevadm info -a -n $SELECTED_DEV | grep "ATTRS{idVendor}" -m 1 -A 1)
-    VENDOR_ID=$(echo "$UDEV_INFO" | grep "idVendor" | head -n1 | cut -d '"' -f 2)
-    PRODUCT_ID=$(echo "$UDEV_INFO" | grep "idProduct" | head -n1 | cut -d '"' -f 2)
+    VENDOR_ID=$(udevadm info -a -n $SELECTED_DEV | grep "ATTRS{idVendor}" | head -n1 | cut -d '"' -f 2)
+    PRODUCT_ID=$(udevadm info -a -n $SELECTED_DEV | grep "ATTRS{idProduct}" | head -n1 | cut -d '"' -f 2)
     SERIAL=$(udevadm info -a -n $SELECTED_DEV | grep "ATTRS{serial}" | head -n1 | cut -d '"' -f 2)
 
     if [ -z "$VENDOR_ID" ] || [ -z "$PRODUCT_ID" ]; then
