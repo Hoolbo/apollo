@@ -1,6 +1,6 @@
 # -*- python -*-
 
-load("@rules_python//python:defs.bzl", "py_test")
+# load("@rules_python//python:defs.bzl", "py_test")
 
 # From https://bazel.build/versions/master/docs/be/c-cpp.html#cc_library.srcs
 _SOURCE_EXTENSIONS = [source_ext for source_ext in """
@@ -44,7 +44,7 @@ def _add_linter_rules(source_labels, source_filenames, name, data = None):
 
     # Google cpplint.
     cpplint_cfg = ["//tools:CPPLINT.cfg"] + native.glob(["CPPLINT.cfg"])
-    py_test(
+    native.py_test(
         name = name + "_cpplint",
         srcs = ["@cpplint//:cpplint"],
         data = data + cpplint_cfg + source_labels,

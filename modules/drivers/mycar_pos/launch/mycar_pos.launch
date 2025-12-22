@@ -1,0 +1,7 @@
+<cyber>
+    <module>
+        <name>mycar_pos</name>
+        <dag_conf>/apollo/modules/drivers/mycar_pos/dag/mycar_pos.dag</dag_conf>
+        <process_name>mycar_pos</process_name>
+    </module>
+</cyber>

@@ -120,6 +120,12 @@ cyber_modules {
   }
 }
 cyber_modules {
+  key: "MycarGNSS"
+  value: {
+    dag_files: "modules/drivers/mycar_pos/dag/mycar_pos.dag"
+  }
+}
+cyber_modules {
   key: "GPS"
   value: {
     dag_files: "modules/drivers/gnss/dag/gnss.dag"
