@@ -1,0 +1,18 @@
+[Unit]
+Description=Mycar CAN Interface Service for %I
+# 绑定到设备，设备拔出时自动停止
+BindsTo=dev-%i.device
+After=dev-%i.device
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# 等待设备完全就绪
+ExecStartPre=/bin/sleep 2
+# 启动CAN接口（路径将由安装脚本自动替换）
+ExecStart=/home/hoolbo/code/apollo/scripts/start_can_interface.sh
+# 停止时清理
+ExecStop=/bin/bash -c 'pkill slcand; ip link set can0 down 2>/dev/null || true'
+# 失败后重试
+Restart=on-failure
+RestartSec=3

@@ -7,6 +7,9 @@
 
 set -e
 
+# 自动检测 Apollo 根目录
+APOLLO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
@@ -37,12 +40,12 @@ TEMP_NAME="temp_${RECORD_NAME}_$$"  # 使用临时名称避免冲突
 cleanup_and_save() {
     echo ""
     echo -e "${GREEN}停止录制...${NC}"
-    ./scripts/record_bag.py --stop 2>/dev/null || true
+    "${APOLLO_ROOT}/scripts/record_bag.py" --stop 2>/dev/null || true
     sleep 2
 
     # 保存录制
     echo -e "${GREEN}保存录制...${NC}"
-    ./scripts/record_bag.py --default_name "$TEMP_NAME" --rename "$RECORD_NAME" 2>/dev/null || true
+    "${APOLLO_ROOT}/scripts/record_bag.py" --default_name "$TEMP_NAME" --rename "$RECORD_NAME" 2>/dev/null || true
 
     # 修正文件名格式
     echo -e "${GREEN}修正文件名格式...${NC}"
@@ -89,12 +92,12 @@ echo ""
 
 # 停止现有录制
 echo -e "${YELLOW}停止现有录制进程...${NC}"
-./scripts/record_bag.py --stop 2>/dev/null || true
+"${APOLLO_ROOT}/scripts/record_bag.py" --stop 2>/dev/null || true
 sleep 2
 
 # 开始录制
 echo -e "${GREEN}开始录制...${NC}"
-./scripts/record_bag.py --start --all --dreamview --default_name "$TEMP_NAME"
+"${APOLLO_ROOT}/scripts/record_bag.py" --start --all --dreamview --default_name "$TEMP_NAME"
 sleep 3
 
 # 等待指定时长或用户中断

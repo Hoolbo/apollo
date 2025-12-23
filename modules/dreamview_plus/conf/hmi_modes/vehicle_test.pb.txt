@@ -285,4 +285,4 @@ layout: {
 operations: Record
 operations: Waypoint_Follow
 operations: Auto_Drive
-default_operation: Auto_Drive
+default_operation: Waypoint_Follow
