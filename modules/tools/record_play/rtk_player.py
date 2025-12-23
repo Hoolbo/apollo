@@ -89,7 +89,7 @@ class RtkPlayer(object):
         self.start = 0
         self.end = 0
         self.closestpoint = 0
-        self.automode = False
+        self.automode = True
 
         self.replan = (replan == 't')
         self.completepath = (completepath == 't')
@@ -155,12 +155,11 @@ class RtkPlayer(object):
         self.logger.debug("search_end: %s" % search_end)
         closest_dist_point = self.start
         self.logger.debug("self.start: %s" % self.start)
-        for i in range(search_start, search_end):
-            dist_sqr = (self.carx - self.data['x'][i]) ** 2 + \
-                (self.cary - self.data['y'][i]) ** 2
-            if dist_sqr <= shortest_dist_sqr and self.data['gear'][i] == self.chassis.gear_location:
-                closest_dist_point = i
-                shortest_dist_sqr = dist_sqr
+            # Match gear if possible, otherwise just take the closest
+            if dist_sqr <= shortest_dist_sqr:
+                if not self.chassis_received or self.data['gear'][i] == self.chassis.gear_location:
+                    closest_dist_point = i
+                    shortest_dist_sqr = dist_sqr
 
         # failed to find a trajectory matches current gear position
         if shortest_dist_sqr == float('inf'):

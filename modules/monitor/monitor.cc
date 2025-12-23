@@ -45,13 +45,13 @@ bool Monitor::Init() {
   runners_.emplace_back(new SocketCanMonitor());
   // To enable the GpsMonitor, you must add FLAGS_gps_component_name to the
   // mode's monitored_components.
-  runners_.emplace_back(new GpsMonitor());
+  // runners_.emplace_back(new GpsMonitor());
   // To enable the LocalizationMonitor, you must add
   // FLAGS_localization_component_name to the mode's monitored_components.
-  runners_.emplace_back(new LocalizationMonitor());
+  // runners_.emplace_back(new LocalizationMonitor());
   // To enable the CameraMonitor, you must add
   // FLAGS_camera_component_name to the mode's monitored_components.
-  runners_.emplace_back(new CameraMonitor());
+  // runners_.emplace_back(new CameraMonitor());
   // Monitor if processes are running.
   runners_.emplace_back(new ProcessMonitor());
   // Monitor if modules are running.

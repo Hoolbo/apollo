@@ -135,7 +135,7 @@ void MycarPosComponent::ProcessData(const std::string& line) {
       ref_lat_ = lat;
       ref_lon_ = lon;
       ref_initialized_ = true;
-      AINFO << "GPS reference point initialized: lat=" << ref_lat_ 
+      AINFO << "GPS reference point initialized: lat=" << ref_lat_
             << ", lon=" << ref_lon_;
     }
 
@@ -144,6 +144,8 @@ void MycarPosComponent::ProcessData(const std::string& line) {
     double y = 0.0;
     double z = 0.0;  // Altitude ignored for now
     GPS_XY(lat, lon, &x, &y);
+
+    AINFO << "Position calculated: x=" << x << ", y=" << y << ", z=" << z;
 
     auto msg = std::make_shared<LocalizationEstimate>();
     msg->mutable_header()->set_timestamp_sec(cyber::Time::Now().ToSecond());
@@ -154,6 +156,10 @@ void MycarPosComponent::ProcessData(const std::string& line) {
     msg->mutable_pose()->mutable_position()->set_x(x);
     msg->mutable_pose()->mutable_position()->set_y(y);
     msg->mutable_pose()->mutable_position()->set_z(z);
+
+    AINFO << "Message set: x=" << msg->pose().position().x()
+          << ", y=" << msg->pose().position().y()
+          << ", z=" << msg->pose().position().z();
 
     // Orientation
     // GPFPD Heading: North=0, Clockwise.
@@ -200,21 +206,21 @@ void MycarPosComponent::GPS_XY(double lat, double lon, double* x, double* y) {
 
   double cos_d_lon = cos(lon_rad - ref_lon_rad);
   double arg = ref_sin_lat * sin_lat + ref_cos_lat * cos_lat * cos_d_lon;
-  
+
   // Clamp arg to [-1, 1] to avoid numerical errors in acos
   if (arg < -1.0) {
     arg = -1.0;
   } else if (arg > 1.0) {
     arg = 1.0;
   }
-  
+
   double c = acos(arg);
   double k = 1.0;
   if (fabs(c) > 0) {
     k = (c / sin(c));
   }
-  
-  *y = k * (ref_cos_lat * sin_lat - ref_sin_lat * cos_lat * cos_d_lon) * 
+
+  *y = k * (ref_cos_lat * sin_lat - ref_sin_lat * cos_lat * cos_d_lon) *
        CONSTANTS_RADIUS_OF_EARTH;
   *x = k * cos_lat * sin(lon_rad - ref_lon_rad) * CONSTANTS_RADIUS_OF_EARTH;
 }

@@ -33,9 +33,9 @@
 #include "modules/common/configs/config_gflags.h"
 #include "modules/common/kv_db/kv_db.h"
 #include "modules/common/util/future.h"
+#include "modules/common/util/json_util.h"
 #include "modules/common/util/map_util.h"
 #include "modules/common/util/message_util.h"
-#include "modules/common/util/json_util.h"
 #include "modules/dreamview/backend/common/dreamview_gflags.h"
 #include "modules/dreamview/backend/common/fuel_monitor/data_collection_monitor.h"
 #include "modules/dreamview/backend/common/fuel_monitor/fuel_monitor_gflags.h"
@@ -81,8 +81,8 @@ const std::vector<HMIModeOperation> OperationBasedOnSimControl = {
 };
 
 template <class FlagType, class ValueType>
-void SetGlobalFlag(std::string_view flag_name, const ValueType &value,
-                   FlagType *flag) {
+void SetGlobalFlag(std::string_view flag_name, const ValueType& value,
+                   FlagType* flag) {
   // change to relative path for portability
   constexpr char kGlobalFlagfile[] = "modules/common/data/global_flagfile.txt";
   if (*flag != value) {
@@ -106,8 +106,8 @@ void System(std::string_view cmd) {
 }  // namespace
 
 HMIWorker::HMIWorker(
-    const std::shared_ptr<Node> &node,
-    const apollo::common::monitor::MonitorLogBuffer &monitor_log_buffer)
+    const std::shared_ptr<Node>& node,
+    const apollo::common::monitor::MonitorLogBuffer& monitor_log_buffer)
     : config_(util::HMIUtil::LoadConfig(FLAGS_dv_plus_hmi_modes_config_path)),
       node_(node),
       monitor_log_buffer_(monitor_log_buffer) {
@@ -124,7 +124,7 @@ void HMIWorker::Start(DvCallback callback_api) {
   callback_api_ = callback_api;
   InitReadersAndWriters();
   RegisterStatusUpdateHandler(
-      [this](const bool status_changed, HMIStatus *status) {
+      [this](const bool status_changed, HMIStatus* status) {
         apollo::common::util::FillHeader("HMI", status);
         status_writer_->Write(*status);
         status->clear_header();
@@ -141,9 +141,9 @@ void HMIWorker::Stop() {
   }
 }
 
-bool HMIWorker::LoadVehicleDefinedMode(const std::string &mode_config_path,
-                                       const std::string &current_vehicle_path,
-                                       HMIMode *self_defined_mode) {
+bool HMIWorker::LoadVehicleDefinedMode(const std::string& mode_config_path,
+                                       const std::string& current_vehicle_path,
+                                       HMIMode* self_defined_mode) {
   const std::string mode_file_name =
       cyber::common::GetFileName(mode_config_path);
   const std::string vehicle_mode_config_path =
@@ -165,9 +165,9 @@ void HMIWorker::InitStatus() {
   status_.set_utm_zone_id(FLAGS_local_utm_zone_id);
 
   // Populate modes and current_mode.
-  const auto &modes = config_.modes();
-  for (const auto &iter : modes) {
-    const std::string &mode = iter.first;
+  const auto& modes = config_.modes();
+  for (const auto& iter : modes) {
+    const std::string& mode = iter.first;
     status_.add_modes(mode);
     if (mode == FLAGS_vehicle_calibration_mode) {
       FuelMonitorManager::Instance()->RegisterFuelMonitor(
@@ -184,7 +184,7 @@ void HMIWorker::InitStatus() {
   }
 
   // Populate maps and current_map.
-  for (const auto &map_entry : config_.maps()) {
+  for (const auto& map_entry : config_.maps()) {
     status_.add_maps(map_entry.first);
 
     // If current FLAG_map_dir is available, set it as current_map.
@@ -194,7 +194,7 @@ void HMIWorker::InitStatus() {
   }
 
   // Populate vehicles and current_vehicle.
-  for (const auto &vehicle : config_.vehicles()) {
+  for (const auto& vehicle : config_.vehicles()) {
     status_.add_vehicles(vehicle.first);
   }
 
@@ -227,7 +227,7 @@ void HMIWorker::InitReadersAndWriters() {
 
   monitor_reader_ = node_->CreateReader<SystemStatus>(
       FLAGS_system_status_topic,
-      [this](const std::shared_ptr<SystemStatus> &system_status) {
+      [this](const std::shared_ptr<SystemStatus>& system_status) {
         this->ResetComponentStatusTimer();
 
         WLock wlock(status_mutex_);
@@ -240,9 +240,9 @@ void HMIWorker::InitReadersAndWriters() {
                       FLAGS_system_status_lifetime_seconds;
         // Update modules running status from realtime SystemStatus.
         if (is_realtime_msg) {
-          for (auto &iter : *status_.mutable_modules()) {
+          for (auto& iter : *status_.mutable_modules()) {
             bool previous_second = iter.second;
-            auto *status = FindOrNull(system_status->hmi_modules(), iter.first);
+            auto* status = FindOrNull(system_status->hmi_modules(), iter.first);
             iter.second =
                 status != nullptr && status->status() == ComponentStatus::OK;
             if (previous_second != iter.second) {
@@ -256,8 +256,8 @@ void HMIWorker::InitReadersAndWriters() {
           }
         }
         // Update monitored components status.
-        for (auto &iter : *status_.mutable_monitored_components()) {
-          auto *status = FindOrNull(system_status->components(), iter.first);
+        for (auto& iter : *status_.mutable_monitored_components()) {
+          auto* status = FindOrNull(system_status->components(), iter.first);
           if (status != nullptr) {
             iter.second = status->summary();
           } else {
@@ -267,8 +267,8 @@ void HMIWorker::InitReadersAndWriters() {
         }
 
         // Update other components status.
-        for (auto &iter : *status_.mutable_other_components()) {
-          auto *status =
+        for (auto& iter : *status_.mutable_other_components()) {
+          auto* status =
               FindOrNull(system_status->other_components(), iter.first);
           if (status != nullptr) {
             iter.second.CopyFrom(*status);
@@ -278,7 +278,7 @@ void HMIWorker::InitReadersAndWriters() {
           }
         }
         // For global components.
-        for (auto &iter : *system_status->mutable_global_components()) {
+        for (auto& iter : *system_status->mutable_global_components()) {
           (*status_.mutable_global_components())[iter.first] = iter.second;
         }
 
@@ -293,7 +293,7 @@ void HMIWorker::InitReadersAndWriters() {
 
   node_->CreateReader<RecordInfo>(
       FLAGS_record_info_topic,
-      [this](const std::shared_ptr<RecordInfo> &record_info) {
+      [this](const std::shared_ptr<RecordInfo>& record_info) {
         WLock wlock(status_mutex_);
         if (record_info->record_name() ==
             status_.current_record_status().current_record_id()) {
@@ -307,7 +307,7 @@ void HMIWorker::InitReadersAndWriters() {
       node_->CreateReader<LocalizationEstimate>(FLAGS_localization_topic);
   // Received Chassis, trigger action if there is high beam signal.
   chassis_reader_ = node_->CreateReader<Chassis>(
-      FLAGS_chassis_topic, [this](const std::shared_ptr<Chassis> &chassis) {
+      FLAGS_chassis_topic, [this](const std::shared_ptr<Chassis>& chassis) {
         if (Clock::NowInSeconds() - chassis->header().timestamp_sec() <
             FLAGS_system_status_lifetime_seconds) {
           if (chassis->signal().high_beam()) {
@@ -357,7 +357,7 @@ bool HMIWorker::Trigger(const HMIAction action) {
   return true;
 }
 
-bool HMIWorker::Trigger(const HMIAction action, const std::string &value) {
+bool HMIWorker::Trigger(const HMIAction action, const std::string& value) {
   AINFO << "HMIAction " << HMIAction_Name(action) << "(" << value
         << ") was triggered!";
   bool ret = true;
@@ -458,8 +458,8 @@ void HMIWorker::SubmitAudioEvent(const uint64_t event_time_ms,
 }
 
 void HMIWorker::SubmitDriveEvent(const uint64_t event_time_ms,
-                                 const std::string &event_msg,
-                                 const std::vector<std::string> &event_types,
+                                 const std::string& event_msg,
+                                 const std::vector<std::string>& event_types,
                                  const bool is_reportable) {
   std::shared_ptr<DriveEvent> drive_event = std::make_shared<DriveEvent>();
   apollo::common::util::FillHeader("HMI", drive_event.get());
@@ -470,7 +470,7 @@ void HMIWorker::SubmitDriveEvent(const uint64_t event_time_ms,
       static_cast<double>(event_time_ms) / 1000.0);
   drive_event->set_event(event_msg);
   drive_event->set_is_reportable(is_reportable);
-  for (const auto &type_name : event_types) {
+  for (const auto& type_name : event_types) {
     DriveEvent::Type type;
     if (DriveEvent::Type_Parse(type_name, &type)) {
       drive_event->add_type(type);
@@ -481,7 +481,7 @@ void HMIWorker::SubmitDriveEvent(const uint64_t event_time_ms,
   drive_event_writer_->Write(drive_event);
 }
 
-void HMIWorker::SensorCalibrationPreprocess(const std::string &task_type) {
+void HMIWorker::SensorCalibrationPreprocess(const std::string& task_type) {
   std::string start_command = absl::StrCat(
       "nohup bash modules/tools/sensor_calibration/extract_data.sh -t ",
       task_type, " &");
@@ -543,7 +543,7 @@ bool HMIWorker::ChangeDrivingMode(const Chassis::DrivingMode mode) {
   return false;
 }
 
-bool HMIWorker::ChangeMap(const std::string &map_name) {
+bool HMIWorker::ChangeMap(const std::string& map_name) {
   if (status_.current_map() == map_name) {
     // Returns true if the map is switched to the same one.
     return true;
@@ -551,8 +551,8 @@ bool HMIWorker::ChangeMap(const std::string &map_name) {
   return SelectAndReloadMap(map_name);
 }
 
-bool HMIWorker::SelectAndReloadMap(const std::string &map_name) {
-  const std::string *map_dir = FindOrNull(config_.maps(), map_name);
+bool HMIWorker::SelectAndReloadMap(const std::string& map_name) {
+  const std::string* map_dir = FindOrNull(config_.maps(), map_name);
   if (map_dir == nullptr) {
     AERROR << "Unknown map " << map_name;
     return false;
@@ -576,7 +576,7 @@ void HMIWorker::UpdateModeModulesAndMonitoredComponents() {
   status_.clear_modules();
   status_.clear_modules_lock();
   previous_modules_lock_.clear();
-  for (const auto &iter : current_mode_.modules()) {
+  for (const auto& iter : current_mode_.modules()) {
     status_.mutable_modules()->insert({iter.first, false});
     status_.mutable_modules_lock()->insert({iter.first, false});
     previous_modules_lock_.insert({iter.first, false});
@@ -584,13 +584,13 @@ void HMIWorker::UpdateModeModulesAndMonitoredComponents() {
 
   // Update monitored components of current mode.
   status_.clear_monitored_components();
-  for (const auto &iter : current_mode_.monitored_components()) {
+  for (const auto& iter : current_mode_.monitored_components()) {
     status_.mutable_monitored_components()->insert({iter.first, {}});
   }
 }
 
-void HMIWorker::ChangeVehicle(const std::string &vehicle_name) {
-  const std::string *vehicle_dir = FindOrNull(config_.vehicles(), vehicle_name);
+void HMIWorker::ChangeVehicle(const std::string& vehicle_name) {
+  const std::string* vehicle_dir = FindOrNull(config_.vehicles(), vehicle_name);
   if (vehicle_dir == nullptr) {
     AERROR << "Unknown vehicle " << vehicle_name;
     return;
@@ -611,7 +611,7 @@ void HMIWorker::ChangeVehicle(const std::string &vehicle_name) {
       cyber::common::GetContent(vehicle_type_file_path, &vehicle_type_str);
       int vehicle_type = std::stoi(vehicle_type_str);
       status_.set_current_vehicle_type(vehicle_type);
-    } catch (const std::exception &e) {
+    } catch (const std::exception& e) {
       AWARN << "get vehicle type config failed: " << e.what();
       status_.clear_current_vehicle_type();
     }
@@ -636,9 +636,9 @@ void HMIWorker::ChangeVehicle(const std::string &vehicle_name) {
   }
   ACHECK(VehicleManager::Instance()->UseVehicle(*vehicle_dir));
   // Restart Fuel Monitor
-  auto *monitors = FuelMonitorManager::Instance()->GetCurrentMonitors();
+  auto* monitors = FuelMonitorManager::Instance()->GetCurrentMonitors();
   if (monitors != nullptr) {
-    for (const auto &monitor : *monitors) {
+    for (const auto& monitor : *monitors) {
       if (monitor.second->IsEnabled()) {
         monitor.second->Restart();
       }
@@ -646,7 +646,7 @@ void HMIWorker::ChangeVehicle(const std::string &vehicle_name) {
   }
 }
 
-void HMIWorker::MergeToCurrentMode(HMIMode *mode) {
+void HMIWorker::MergeToCurrentMode(HMIMode* mode) {
   current_mode_.clear_modules();
   current_mode_.clear_cyber_modules();
   current_mode_.clear_monitored_components();
@@ -655,7 +655,7 @@ void HMIWorker::MergeToCurrentMode(HMIMode *mode) {
       *(mode->mutable_monitored_components()));
 }
 
-void HMIWorker::ChangeMode(const std::string &mode_name) {
+void HMIWorker::ChangeMode(const std::string& mode_name) {
   if (!ContainsKey(config_.modes(), mode_name)) {
     AERROR << "Cannot change to unknown mode " << mode_name;
     return;
@@ -676,7 +676,7 @@ void HMIWorker::ChangeMode(const std::string &mode_name) {
     current_mode_ = util::HMIUtil::LoadMode(config_.modes().at(mode_name));
     // for vehicle self-defined module
     HMIMode vehicle_defined_mode;
-    const std::string *vehicle_dir =
+    const std::string* vehicle_dir =
         FindOrNull(config_.vehicles(), status_.current_vehicle());
     if (vehicle_dir != nullptr &&
         LoadVehicleDefinedMode(config_.modes().at(mode_name), *vehicle_dir,
@@ -686,7 +686,7 @@ void HMIWorker::ChangeMode(const std::string &mode_name) {
     UpdateModeModulesAndMonitoredComponents();
 
     status_.clear_other_components();
-    for (const auto &iter : current_mode_.other_components()) {
+    for (const auto& iter : current_mode_.other_components()) {
       status_.mutable_other_components()->insert({iter.first, {}});
     }
 
@@ -718,8 +718,8 @@ void HMIWorker::ChangeMode(const std::string &mode_name) {
   KVDB::Put(FLAGS_current_mode_db_key, mode_name);
 }
 
-void HMIWorker::StartModule(const std::string &module) {
-  const Module *module_conf = FindOrNull(current_mode_.modules(), module);
+void HMIWorker::StartModule(const std::string& module) {
+  const Module* module_conf = FindOrNull(current_mode_.modules(), module);
   if (module_conf != nullptr) {
     {
       WLock wlock(status_mutex_);
@@ -731,8 +731,8 @@ void HMIWorker::StartModule(const std::string &module) {
   }
 }
 
-void HMIWorker::StopModule(const std::string &module) {
-  const Module *module_conf = FindOrNull(current_mode_.modules(), module);
+void HMIWorker::StopModule(const std::string& module) {
+  const Module* module_conf = FindOrNull(current_mode_.modules(), module);
   if (module_conf != nullptr) {
     {
       WLock wlock(status_mutex_);
@@ -754,7 +754,7 @@ void HMIWorker::SetupMode() {
     WLock wlock(status_mutex_);
     status_.set_backend_shutdown(false);
   }
-  for (const auto &iter : current_mode_.modules()) {
+  for (const auto& iter : current_mode_.modules()) {
     {
       WLock wlock(status_mutex_);
       auto modules = status_.modules();
@@ -773,7 +773,7 @@ void HMIWorker::ResetMode() {
     WLock wlock(status_mutex_);
     status_.set_backend_shutdown(true);
   }
-  for (const auto &iter : current_mode_.modules()) {
+  for (const auto& iter : current_mode_.modules()) {
     {
       WLock wlock(status_mutex_);
       auto modules = status_.modules();
@@ -832,7 +832,7 @@ void HMIWorker::UpdateComponentStatus() {
       AWARN << "System fault. Auto disengage.";
       Trigger(HMIAction::DISENGAGE);
 
-      for (auto &monitored_component :
+      for (auto& monitored_component :
            *status_.mutable_monitored_components()) {
         monitored_component.second.set_status(ComponentStatus::UNKNOWN);
         monitored_component.second.set_message(
@@ -846,7 +846,7 @@ void HMIWorker::UpdateComponentStatus() {
   }
 }
 
-bool HMIWorker::GetScenarioResourcePath(std::string *scenario_resource_path) {
+bool HMIWorker::GetScenarioResourcePath(std::string* scenario_resource_path) {
   CHECK_NOTNULL(scenario_resource_path);
   const std::string home = cyber::common::GetEnv("HOME");
   if (home.empty()) {
@@ -856,7 +856,7 @@ bool HMIWorker::GetScenarioResourcePath(std::string *scenario_resource_path) {
   return true;
 }
 
-void HMIWorker::ChangeDynamicModel(const std::string &dynamic_model_name) {
+void HMIWorker::ChangeDynamicModel(const std::string& dynamic_model_name) {
   // To avoid toggle sim control and always choose simulation perfect control
   // {
   //   RLock rlock(status_mutex_);
@@ -893,7 +893,7 @@ void HMIWorker::ChangeDynamicModel(const std::string &dynamic_model_name) {
 }
 
 bool HMIWorker::UpdateDynamicModelToStatus(
-    const std::string &dynamic_model_name) {
+    const std::string& dynamic_model_name) {
   auto sim_control_manager = SimControlManager::Instance();
   if (!sim_control_manager->IsEnabled()) {
     AERROR << "Sim control is not enabled or missing dynamic model name "
@@ -908,7 +908,7 @@ bool HMIWorker::UpdateDynamicModelToStatus(
   }
   {
     WLock wlock(status_mutex_);
-    for (const auto &iter : status_.dynamic_models()) {
+    for (const auto& iter : status_.dynamic_models()) {
       if (iter == dynamic_model_name) {
         AERROR << "Do not need to add new dynamic model for is duplicate!";
         return true;
@@ -940,7 +940,7 @@ bool HMIWorker::LoadDynamicModels() {
     for (auto iter = dynamic_models->begin(); iter != dynamic_models->end();) {
       iter = dynamic_models->erase(iter);
     }
-    for (const auto &dynamic_model : load_res["loaded_dynamic_models"]) {
+    for (const auto& dynamic_model : load_res["loaded_dynamic_models"]) {
       status_.add_dynamic_models(dynamic_model);
     }
     status_changed_ = true;
@@ -948,7 +948,7 @@ bool HMIWorker::LoadDynamicModels() {
   return true;
 }
 
-void HMIWorker::DeleteScenarioSet(const std::string &scenario_set_id) {
+void HMIWorker::DeleteScenarioSet(const std::string& scenario_set_id) {
   if (scenario_set_id.empty()) {
     return;
   }
@@ -981,7 +981,7 @@ void HMIWorker::DeleteScenarioSet(const std::string &scenario_set_id) {
   return;
 }
 
-void HMIWorker::DeleteDynamicModel(const std::string &dynamic_model_name) {
+void HMIWorker::DeleteDynamicModel(const std::string& dynamic_model_name) {
   if (dynamic_model_name.empty()) {
     AERROR << "Invalid param:empty dynamic model name!";
     return;
@@ -1028,7 +1028,7 @@ void HMIWorker::DeleteDynamicModel(const std::string &dynamic_model_name) {
   return;
 }
 
-bool HMIWorker::GetRecordPath(std::string *record_path) {
+bool HMIWorker::GetRecordPath(std::string* record_path) {
   CHECK_NOTNULL(record_path);
   const std::string home = cyber::common::GetEnv("HOME");
   if (home.empty()) {
@@ -1038,7 +1038,7 @@ bool HMIWorker::GetRecordPath(std::string *record_path) {
   return true;
 }
 
-bool HMIWorker::handlePlayRecordProcess(const std::string &action_type) {
+bool HMIWorker::handlePlayRecordProcess(const std::string& action_type) {
   std::string record_id;
   PlayRecordStatus current_play_record_status;
   PlayRecordStatus expected_play_record_status;
@@ -1071,7 +1071,7 @@ bool HMIWorker::handlePlayRecordProcess(const std::string &action_type) {
   if (reasonable_play_record_status != current_play_record_status) {
     return false;
   }
-  auto *record_player_factory = RecordPlayerFactory::Instance();
+  auto* record_player_factory = RecordPlayerFactory::Instance();
   auto player_ptr = record_player_factory->GetRecordPlayer(record_id);
   if (!player_ptr) {
     AERROR << "Failed to get record player.";
@@ -1120,7 +1120,7 @@ bool HMIWorker::RePlayRecord() {
     return false;
   }
   // play the record
-  auto *record_player_factory = RecordPlayerFactory::Instance();
+  auto* record_player_factory = RecordPlayerFactory::Instance();
   auto player_ptr = record_player_factory->GetRecordPlayer(record_id);
   bool play_record_res = (player_ptr != nullptr);
   PlayRecordStatus play_record_status;
@@ -1144,7 +1144,7 @@ bool HMIWorker::RePlayRecord() {
   return play_record_res;
 }
 
-bool HMIWorker::ResetRecordProgress(const double &progress) {
+bool HMIWorker::ResetRecordProgress(const double& progress) {
   std::string record_id;
   double total_time_s;
   PlayRecordStatus last_record_status;
@@ -1171,7 +1171,7 @@ bool HMIWorker::ResetRecordProgress(const double &progress) {
               "record's total time.";
     return false;
   }
-  auto *record_player_factory = RecordPlayerFactory::Instance();
+  auto* record_player_factory = RecordPlayerFactory::Instance();
   auto player_ptr = record_player_factory->GetRecordPlayer(record_id);
   if (!player_ptr) {
     AERROR << "Failed to get record player.";
@@ -1200,7 +1200,7 @@ bool HMIWorker::ResetRecordProgress(const double &progress) {
   return true;
 }
 
-void HMIWorker::StopRecordPlay(const std::string &record_id) {
+void HMIWorker::StopRecordPlay(const std::string& record_id) {
   std::string curr_record_id = "";
   {
     RLock rlock(status_mutex_);
@@ -1213,7 +1213,7 @@ void HMIWorker::StopRecordPlay(const std::string &record_id) {
     AERROR << "Failed to stop record player under unloaded status!";
     return;
   }
-  auto *record_player_factory = RecordPlayerFactory::Instance();
+  auto* record_player_factory = RecordPlayerFactory::Instance();
   auto player_ptr = record_player_factory->GetRecordPlayer(curr_record_id);
   if (!player_ptr) {
     AERROR << "Failed to get record player to reset.";
@@ -1229,7 +1229,7 @@ void HMIWorker::StopRecordPlay(const std::string &record_id) {
   status_changed_ = true;
 }
 
-bool HMIWorker::RecordIsLoaded(const std::string &record_id) {
+bool HMIWorker::RecordIsLoaded(const std::string& record_id) {
   {
     RLock rlock(status_mutex_);
     auto iter = status_.records().find(record_id);
@@ -1238,7 +1238,7 @@ bool HMIWorker::RecordIsLoaded(const std::string &record_id) {
   }
 }
 
-void HMIWorker::ChangeRecord(const std::string &record_id) {
+void HMIWorker::ChangeRecord(const std::string& record_id) {
   std::string last_record_id;
   {
     RLock rlock(status_mutex_);
@@ -1261,7 +1261,7 @@ void HMIWorker::ChangeRecord(const std::string &record_id) {
   callback_api_("ClearDataHandlerConfChannelMsgs", {});
   WLock wlock(status_mutex_);
   status_.mutable_current_record_status()->set_current_record_id(record_id);
-  auto *record_player_factory = RecordPlayerFactory::Instance();
+  auto* record_player_factory = RecordPlayerFactory::Instance();
   record_player_factory->SetCurrentRecord(record_id);
   record_player_factory->IncreaseRecordPriority(record_id);
   status_changed_ = true;
@@ -1303,7 +1303,7 @@ void HMIWorker::ClearInvalidResourceUnderChangeOperation(
   }
 }
 
-void HMIWorker::ChangeOperation(const std::string &operation_str) {
+void HMIWorker::ChangeOperation(const std::string& operation_str) {
   HMIModeOperation operation;
   if (!HMIModeOperation_Parse(operation_str, &operation)) {
     AERROR << "Invalid HMI operation string: " << operation_str;
@@ -1336,8 +1336,8 @@ void HMIWorker::ChangeOperation(const std::string &operation_str) {
   return;
 }
 
-bool HMIWorker::ReadRecordInfo(const std::string &file,
-                               double *total_time_s) const {
+bool HMIWorker::ReadRecordInfo(const std::string& file,
+                               double* total_time_s) const {
   cyber::record::RecordFileReader file_reader;
   if (!file_reader.Open(file)) {
     AERROR << "open record file error. file: " << file;
@@ -1355,7 +1355,7 @@ bool HMIWorker::ReadRecordInfo(const std::string &file,
   return true;
 }
 
-bool HMIWorker::UpdateMapToStatus(const std::string &map_tar_name) {
+bool HMIWorker::UpdateMapToStatus(const std::string& map_tar_name) {
   if (map_tar_name.empty()) {
     ReloadMaps();
     return true;
@@ -1392,11 +1392,11 @@ bool HMIWorker::UpdateMapToStatus(const std::string &map_tar_name) {
   return true;
 }
 
-bool HMIWorker::LoadRecordAndChangeStatus(const std::string &record_name) {
+bool HMIWorker::LoadRecordAndChangeStatus(const std::string& record_name) {
   std::string record_file_path;
   {
     RLock rlock(status_mutex_);
-    auto &status_records = status_.records();
+    auto& status_records = status_.records();
     auto iter = status_records.find(record_name);
     if (iter == status_records.end()) {
       AERROR << "Cannot load unknown record!";
@@ -1439,9 +1439,9 @@ bool HMIWorker::LoadRecordAndChangeStatus(const std::string &record_name) {
   return true;
 }
 
-bool HMIWorker::LoadRecord(const std::string &record_name,
-                           const std::string &record_file_path,
-                           double *total_time_s) {
+bool HMIWorker::LoadRecord(const std::string& record_name,
+                           const std::string& record_file_path,
+                           double* total_time_s) {
   if (RecordIsLoaded(record_name)) {
     AERROR << "Record is loaded,no need to load";
     return false;
@@ -1474,7 +1474,7 @@ bool HMIWorker::LoadRecord(const std::string &record_name,
 
 bool HMIWorker::LoadRecords() {
   std::string directory_path;
-  auto *record_player_factory = RecordPlayerFactory::Instance();
+  auto* record_player_factory = RecordPlayerFactory::Instance();
   if (!GetRecordPath(&directory_path)) {
     AERROR << "Failed to get record path!";
     return false;
@@ -1483,12 +1483,12 @@ bool HMIWorker::LoadRecords() {
     AERROR << "Failed to find records!";
     return false;
   }
-  DIR *directory = opendir(directory_path.c_str());
+  DIR* directory = opendir(directory_path.c_str());
   if (directory == nullptr) {
     AERROR << "Cannot open record directory" << directory_path;
     return false;
   }
-  struct dirent *file;
+  struct dirent* file;
   google::protobuf::Map<std::string, LoadRecordInfo> new_records;
   while ((file = readdir(directory)) != nullptr) {
     if (!strcmp(file->d_name, ".") || !strcmp(file->d_name, "..")) {
@@ -1543,7 +1543,7 @@ bool HMIWorker::LoadRecords() {
   return true;
 }
 
-void HMIWorker::DeleteMap(const std::string &map_name) {
+void HMIWorker::DeleteMap(const std::string& map_name) {
   std::string title_map_name = util::HMIUtil::TitleCase(map_name);
   if (map_name.empty()) {
     return;
@@ -1590,7 +1590,7 @@ void HMIWorker::DeleteMap(const std::string &map_name) {
   return;
 }
 
-void HMIWorker::DeleteRecord(const std::string &record_id) {
+void HMIWorker::DeleteRecord(const std::string& record_id) {
   if (record_id.empty()) {
     return;
   }
@@ -1614,7 +1614,7 @@ void HMIWorker::DeleteRecord(const std::string &record_id) {
   // find the delete record if exist and judge the record whether playing now
   {
     RLock rlock(status_mutex_);
-    auto &status_records = status_.records();
+    auto& status_records = status_.records();
     if (status_records.find(record_id) == status_records.end()) {
       AERROR << "Failed to find record id: " << record_id;
       return;
@@ -1625,7 +1625,7 @@ void HMIWorker::DeleteRecord(const std::string &record_id) {
     }
   }
   // unregister record player from player factory
-  auto *record_player_factory = RecordPlayerFactory::Instance();
+  auto* record_player_factory = RecordPlayerFactory::Instance();
   record_player_factory->UnregisterRecordPlayer(record_id);
   {
     WLock wlock(status_mutex_);
@@ -1659,7 +1659,7 @@ void HMIWorker::ReloadMaps() {
   *(config_.mutable_maps()) =
       util::HMIUtil::ListDirAsDict(FLAGS_maps_data_path);
   status_.clear_maps();
-  for (const auto &map : config_.maps()) {
+  for (const auto& map : config_.maps()) {
     status_.add_maps(map.first);
   }
   if (status_.current_map() != "") {
@@ -1687,7 +1687,7 @@ bool HMIWorker::ReloadVehicles() {
   status_.clear_vehicles();
   // InitStatus();
   // Populate vehicles and current_vehicle.
-  for (const auto &vehicle : config_.vehicles()) {
+  for (const auto& vehicle : config_.vehicles()) {
     status_.add_vehicles(vehicle.first);
   }
   status_changed_ = true;
@@ -1695,7 +1695,7 @@ bool HMIWorker::ReloadVehicles() {
 }
 
 void HMIWorker::UpdateCameraSensorChannelToStatus(
-    const std::string &channel_name) {
+    const std::string& channel_name) {
   {
     WLock wlock(status_mutex_);
     if (status_.current_camera_sensor_channel() == channel_name) {
@@ -1708,7 +1708,7 @@ void HMIWorker::UpdateCameraSensorChannelToStatus(
 }
 
 void HMIWorker::UpdatePointCloudChannelToStatus(
-    const std::string &channel_name) {
+    const std::string& channel_name) {
   {
     WLock wlock(status_mutex_);
     if (status_.current_point_cloud_channel() == channel_name) {
@@ -1720,11 +1720,11 @@ void HMIWorker::UpdatePointCloudChannelToStatus(
   }
 }
 
-void HMIWorker::DeleteVehicleConfig(const std::string &vehicle_name) {
+void HMIWorker::DeleteVehicleConfig(const std::string& vehicle_name) {
   if (vehicle_name.empty()) {
     return;
   }
-  const std::string *vehicle_dir = FindOrNull(config_.vehicles(), vehicle_name);
+  const std::string* vehicle_dir = FindOrNull(config_.vehicles(), vehicle_name);
   if (vehicle_dir == nullptr) {
     AERROR << "Unknow vehicle name" << vehicle_name;
     return;
@@ -1746,11 +1746,11 @@ void HMIWorker::DeleteVehicleConfig(const std::string &vehicle_name) {
   }
 }
 
-void HMIWorker::DeleteV2xConfig(const std::string &vehicle_name) {
+void HMIWorker::DeleteV2xConfig(const std::string& vehicle_name) {
   if (vehicle_name.empty()) {
     return;
   }
-  const std::string *vehicle_dir =
+  const std::string* vehicle_dir =
       FindOrNull(config_.vehicles(), util::HMIUtil::TitleCase(vehicle_name));
   if (vehicle_dir == nullptr) {
     AERROR << "Unknow vehicle name " << vehicle_name;
@@ -1773,11 +1773,11 @@ bool HMIWorker::StartDataRecorder() {
       FLAGS_data_record_default_name;
   int ret = std::system(start_cmd.data());
   if (ret == 0) {
-    auto *monitors = FuelMonitorManager::Instance()->GetCurrentMonitors();
+    auto* monitors = FuelMonitorManager::Instance()->GetCurrentMonitors();
     if (monitors != nullptr) {
       auto iter = monitors->find(FLAGS_data_collection_monitor_name);
       if (iter != monitors->end()) {
-        auto *data_collection_monitor = iter->second.get();
+        auto* data_collection_monitor = iter->second.get();
         if (data_collection_monitor->IsEnabled() && record_count_ == 0) {
           data_collection_monitor->Restart();
         }
@@ -1802,7 +1802,7 @@ bool HMIWorker::StopDataRecorder() {
   }
 }
 
-int HMIWorker::SaveDataRecorder(const std::string &new_name) {
+int HMIWorker::SaveDataRecorder(const std::string& new_name) {
   std::string data_record_default_path =
       std::string(cyber::common::GetEnv("HOME", "/home/apollo")) +
       "/.apollo/resources/records/" + FLAGS_data_record_default_name;
@@ -1877,7 +1877,7 @@ void HMIWorker::ClearRtkRecordInfo() {
   return;
 }
 
-void HMIWorker::AddExpectedModules(const HMIAction &action) {
+void HMIWorker::AddExpectedModules(const HMIAction& action) {
   WLock wlock(status_mutex_);
   int expected_modules = 1;
   if (action == HMIAction::SETUP_MODE) {
@@ -1887,14 +1887,14 @@ void HMIWorker::AddExpectedModules(const HMIAction &action) {
   status_changed_ = true;
 }
 
-void HMIWorker::OnTimer(const double &overtime_time) {
+void HMIWorker::OnTimer(const double& overtime_time) {
   if (monitor_reader_ != nullptr) {
     auto delay_sec = monitor_reader_->GetDelaySec();
     if (delay_sec < 0 || delay_sec > overtime_time) {
       AERROR << "Running time error: monitor is not turned on!";
       {
         WLock wlock(status_mutex_);
-        for (auto &iter : *status_.mutable_modules_lock()) {
+        for (auto& iter : *status_.mutable_modules_lock()) {
           iter.second = false;
         }
       }
@@ -1906,7 +1906,7 @@ void HMIWorker::OnTimer(const double &overtime_time) {
     WLock wlock(status_mutex_);
     auto modules = status_.mutable_modules();
     auto modules_lock = status_.mutable_modules_lock();
-    for (const auto &iter : current_mode_.modules()) {
+    for (const auto& iter : current_mode_.modules()) {
       if (previous_modules_lock_[iter.first] && (*modules_lock)[iter.first] &&
           !isProcessRunning(iter.second.start_command())) {
         (*modules)[iter.first] = false;
@@ -1917,26 +1917,26 @@ void HMIWorker::OnTimer(const double &overtime_time) {
   }
 }
 
-void HMIWorker::LockModule(const std::string &module, const bool &lock_flag) {
+void HMIWorker::LockModule(const std::string& module, const bool& lock_flag) {
   auto modules_lock = status_.mutable_modules_lock();
   (*modules_lock)[module] = lock_flag;
 }
 
-bool HMIWorker::AddOrModifyObjectToDB(const std::string &key,
-                                      const std::string &value) {
+bool HMIWorker::AddOrModifyObjectToDB(const std::string& key,
+                                      const std::string& value) {
   return KVDB::Put(key, value);
 }
 
-bool HMIWorker::DeleteObjectToDB(const std::string &key) {
+bool HMIWorker::DeleteObjectToDB(const std::string& key) {
   return KVDB::Delete(key);
 }
 
-std::string HMIWorker::GetObjectFromDB(const std::string &key) {
+std::string HMIWorker::GetObjectFromDB(const std::string& key) {
   return KVDB::Get(key).value_or("");
 }
 
 std::vector<std::pair<std::string, std::string>>
-HMIWorker::GetTuplesWithTypeFromDB(const std::string &type) {
+HMIWorker::GetTuplesWithTypeFromDB(const std::string& type) {
   return KVDB::GetWithStart(type);
 }
 
@@ -1944,7 +1944,7 @@ bool HMIWorker::StartTerminal() {
   return std::system(FLAGS_terminal_start_cmd.data()) == 0;
 }
 
-void HMIWorker::GetRtkRecordPath(std::string *record_path) {
+void HMIWorker::GetRtkRecordPath(std::string* record_path) {
   CHECK_NOTNULL(record_path);
   *record_path = FLAGS_resource_rtk_record_path;
 }
@@ -1960,12 +1960,12 @@ bool HMIWorker::LoadRtkRecords() {
     AERROR << "Failed to find rtk records!";
     return false;
   }
-  DIR *directory = opendir(directory_path.c_str());
+  DIR* directory = opendir(directory_path.c_str());
   if (directory == nullptr) {
     AERROR << "Cannot open rtk record directory" << directory_path;
     return false;
   }
-  struct dirent *file;
+  struct dirent* file;
   std::map<std::string, double> new_records;
   while ((file = readdir(directory)) != nullptr) {
     if (!strcmp(file->d_name, ".") || !strcmp(file->d_name, "..")) {
@@ -2016,12 +2016,12 @@ bool HMIWorker::StopRtkDataRecorder() {
 
 Json HMIWorker::StartPlayRtkRecorder() {
   Json result;
-  if (!ChangeDrivingMode(Chassis::COMPLETE_AUTO_DRIVE)) {
-    AERROR << "Failed to play rtk: Failed to enter auto drive.";
-    result["error"] = "Failed to enter auto drive";
-    result["isOk"] = false;
-    return result;
-  }
+  // if (!ChangeDrivingMode(Chassis::COMPLETE_AUTO_DRIVE)) {
+  //   AERROR << "Failed to play rtk: Failed to enter auto drive.";
+  //   result["error"] = "Failed to enter auto drive";
+  //   result["isOk"] = false;
+  //   return result;
+  // }
   std::string record_id;
   {
     RLock rlock(status_mutex_);
@@ -2052,7 +2052,7 @@ bool HMIWorker::StopPlayRtkRecorder() {
   }
 }
 
-int HMIWorker::SaveRtkDataRecorder(const std::string &new_name) {
+int HMIWorker::SaveRtkDataRecorder(const std::string& new_name) {
   std::string new_rtk_record_file =
       FLAGS_default_rtk_record_path + new_name + ".csv";
   if (cyber::common::PathExists(new_rtk_record_file)) {
@@ -2082,7 +2082,7 @@ bool HMIWorker::DeleteRtkDataRecorder() {
   }
 }
 
-void HMIWorker::ChangeRtkRecord(const std::string &record_id) {
+void HMIWorker::ChangeRtkRecord(const std::string& record_id) {
   if (!StopPlayRtkRecorder()) {
     AWARN << "Warning to change rtk record: Failed to stop the rtk_recorder "
              "process.";
@@ -2102,13 +2102,13 @@ void HMIWorker::ChangeRtkRecord(const std::string &record_id) {
   return;
 }
 
-void HMIWorker::UpdateRtkRecordToStatus(const std::string &new_name) {
+void HMIWorker::UpdateRtkRecordToStatus(const std::string& new_name) {
   WLock wlock(status_mutex_);
   status_.add_rtk_records(new_name);
   status_changed_ = true;
 }
 
-void HMIWorker::ClearInvalidRecordStatus(const HMIModeOperation &operation) {
+void HMIWorker::ClearInvalidRecordStatus(const HMIModeOperation& operation) {
   HMIModeOperation last_operation;
   {
     RLock rlock(status_mutex_);
@@ -2125,12 +2125,12 @@ void HMIWorker::ClearInvalidRecordStatus(const HMIModeOperation &operation) {
   }
 }
 
-bool HMIWorker::isProcessRunning(const std::string &process_name) {
+bool HMIWorker::isProcessRunning(const std::string& process_name) {
   std::stringstream commandStream;
   commandStream << "pgrep -f " << process_name;
   std::string command = commandStream.str();
 
-  FILE *fp = popen(command.c_str(), "r");
+  FILE* fp = popen(command.c_str(), "r");
   if (fp) {
     char result[128];
     if (fgets(result, sizeof(result), fp) != nullptr) {
@@ -2145,18 +2145,17 @@ bool HMIWorker::isProcessRunning(const std::string &process_name) {
   return false;
 }
 
-bool HMIWorker::PackageExist(const std::string &package_name) {
+bool HMIWorker::PackageExist(const std::string& package_name) {
   std::string package_path_prefix;
   if (!apollo::cyber::common::GetFilePathWithEnv(
-          FLAGS_apollo_package_meta_info_path_prefix, "APOLLO_DISTRIBUTION_HOME",
-          &package_path_prefix)) {
+          FLAGS_apollo_package_meta_info_path_prefix,
+          "APOLLO_DISTRIBUTION_HOME", &package_path_prefix)) {
     AERROR << FLAGS_apollo_package_meta_info_path_prefix
            << " No such package meta info path prefix";
     return false;
   }
   std::string package_meta_info_path =
-      package_path_prefix + package_name +
-      "/cyberfile.xml";
+      package_path_prefix + package_name + "/cyberfile.xml";
   AINFO << "package_meta_info_path: " << package_meta_info_path;
   return (cyber::common::PathExists(package_meta_info_path));
 }
@@ -2175,13 +2174,13 @@ std::string HMIWorker::GetCurrentModeDefaultLayout() {
 void HMIWorker::LoadDvPluginPanelsJson() {
   plugin_panels_json_ = Json::array();
 
-  DIR *directory = opendir(FLAGS_dv_plugin_panels_path.c_str());
+  DIR* directory = opendir(FLAGS_dv_plugin_panels_path.c_str());
   if (!directory) {
     AERROR << "can not open: " << FLAGS_dv_plugin_panels_path;
     return;
   }
 
-  struct dirent *file;
+  struct dirent* file;
   while ((file = readdir(directory)) != nullptr) {
     if (!strcmp(file->d_name, ".") || !strcmp(file->d_name, "..")) {
       continue;
