@@ -29,7 +29,6 @@ cc_library(
         "//modules/common/util:util_tool",
         "//modules/common_msgs/localization_msgs:localization_cc_proto",
         "//modules/transform:apollo_transform",
-        "@proj",
         "@eigen",
     ],
 )

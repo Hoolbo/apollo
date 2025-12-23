@@ -3,7 +3,7 @@ syntax = "proto2";
 package apollo.drivers.mycar_pos;
 
 message MycarPosConf {
-  optional string device = 1 [default = "/dev/ttyUSB0"];
+  optional string device = 1 [default = "/dev/gps_serial"];
   optional int32 baud_rate = 2 [default = 115200];
   // Default to UTM zone 50 (Beijing/Xi'an area approx), user should change this
   optional string proj4_text = 3 [default = "+proj=utm +zone=50 +ellps=WGS84"];

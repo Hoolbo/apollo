@@ -16,8 +16,4 @@
 # limitations under the License.
 ###############################################################################
 
-TOP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
-source "${TOP_DIR}/scripts/apollo_base.sh"
-
-# run function from apollo_base.sh
-run_module canbus "$@"
+cyber_launch start modules/canbus/launch/canbus.launch

@@ -2006,7 +2006,7 @@ bool HMIWorker::StartRtkDataRecorder() {
 bool HMIWorker::StopRtkDataRecorder() {
   std::string stop_cmd = "/apollo/scripts/rtk_recorder.sh stop";
   int ret = std::system(stop_cmd.data());
-  if (ret == 9) {
+  if (ret == 0) {
     return true;
   } else {
     AERROR << "Failed to stop the rtk_recorder process";

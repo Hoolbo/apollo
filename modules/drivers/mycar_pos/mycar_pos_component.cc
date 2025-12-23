@@ -18,6 +18,8 @@ using apollo::localization::LocalizationEstimate;
 
 namespace {
 
+constexpr double DEG_TO_RAD = M_PI / 180.0;
+
 std::vector<std::string> split(const std::string& s, char delimiter) {
   std::vector<std::string> tokens;
   std::string token;
@@ -37,8 +39,6 @@ MycarPosComponent::~MycarPosComponent() {
   if (fd_ >= 0) {
     close(fd_);
   }
-  if (wgs84pj_source_) pj_free(wgs84pj_source_);
-  if (utm_target_) pj_free(utm_target_);
 }
 
 bool MycarPosComponent::Init() {
@@ -48,14 +48,6 @@ bool MycarPosComponent::Init() {
   }
 
   AINFO << "MycarPos config: " << conf_.DebugString();
-
-  // Init Proj
-  wgs84pj_source_ = pj_init_plus("+proj=latlong +ellps=WGS84");
-  utm_target_ = pj_init_plus(conf_.proj4_text().c_str());
-  if (!wgs84pj_source_ || !utm_target_) {
-    AERROR << "Failed to init proj";
-    return false;
-  }
 
   writer_ = node_->CreateWriter<LocalizationEstimate>(conf_.topic());
 
@@ -138,12 +130,20 @@ void MycarPosComponent::ProcessData(const std::string& line) {
 
   double lat, lon, heading, ve, vn, vu;
   if (ParseGPFPD(line, &lat, &lon, &heading, &ve, &vn, &vu)) {
-    // Convert to radians
-    double x = lon * DEG_TO_RAD;
-    double y = lat * DEG_TO_RAD;
-    double z = 0;  // Altitude ignored for now or parsed if needed
+    // Initialize reference point with first GPS reading
+    if (!ref_initialized_) {
+      ref_lat_ = lat;
+      ref_lon_ = lon;
+      ref_initialized_ = true;
+      AINFO << "GPS reference point initialized: lat=" << ref_lat_ 
+            << ", lon=" << ref_lon_;
+    }
 
-    pj_transform(wgs84pj_source_, utm_target_, 1, 1, &x, &y, NULL);
+    // Convert GPS to local XY coordinates
+    double x = 0.0;
+    double y = 0.0;
+    double z = 0.0;  // Altitude ignored for now
+    GPS_XY(lat, lon, &x, &y);
 
     auto msg = std::make_shared<LocalizationEstimate>();
     msg->mutable_header()->set_timestamp_sec(cyber::Time::Now().ToSecond());
@@ -184,6 +184,39 @@ void MycarPosComponent::ProcessData(const std::string& line) {
 
     writer_->Write(msg);
   }
+}
+
+void MycarPosComponent::GPS_XY(double lat, double lon, double* x, double* y) {
+  // Convert degrees to radians
+  double lat_rad = lat * M_PI / 180.0;
+  double lon_rad = lon * M_PI / 180.0;
+  double ref_lat_rad = ref_lat_ * M_PI / 180.0;
+  double ref_lon_rad = ref_lon_ * M_PI / 180.0;
+
+  double sin_lat = sin(lat_rad);
+  double cos_lat = cos(lat_rad);
+  double ref_sin_lat = sin(ref_lat_rad);
+  double ref_cos_lat = cos(ref_lat_rad);
+
+  double cos_d_lon = cos(lon_rad - ref_lon_rad);
+  double arg = ref_sin_lat * sin_lat + ref_cos_lat * cos_lat * cos_d_lon;
+  
+  // Clamp arg to [-1, 1] to avoid numerical errors in acos
+  if (arg < -1.0) {
+    arg = -1.0;
+  } else if (arg > 1.0) {
+    arg = 1.0;
+  }
+  
+  double c = acos(arg);
+  double k = 1.0;
+  if (fabs(c) > 0) {
+    k = (c / sin(c));
+  }
+  
+  *y = k * (ref_cos_lat * sin_lat - ref_sin_lat * cos_lat * cos_d_lon) * 
+       CONSTANTS_RADIUS_OF_EARTH;
+  *x = k * cos_lat * sin(lon_rad - ref_lon_rad) * CONSTANTS_RADIUS_OF_EARTH;
 }
 
 bool MycarPosComponent::ParseGPFPD(const std::string& line, double* lat,

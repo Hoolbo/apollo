@@ -16,7 +16,7 @@ int main(int argc, char **argv)
   // 创建timeout
   serial::Timeout to = serial::Timeout::simpleTimeout(100);
   // 设置要打开的串口名称
-  sp.setPort("/dev/ttyUSB0");
+  sp.setPort("/dev/gps_serial");
   // 设置串口通信的波特率
   sp.setBaudrate(115200);
   // 串口设置timeout
@@ -33,7 +33,7 @@ int main(int argc, char **argv)
   // 判断串口是否打开成功
   if(sp.isOpen())
   {
-    ROS_ERROR_STREAM("/dev/ttyUSB0 is opened.");
+    ROS_ERROR_STREAM("/dev/gps_serial is opened.");
     sp.write("$cmd,output,com0,gpfpd,0.05*ff");
   }
   else {

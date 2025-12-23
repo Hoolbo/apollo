@@ -6,7 +6,7 @@ cc_library(
     name = "libnuma-dev",
     includes = ["."],
     linkopts = [
-        "-lnuma",
+        
     ],
     visibility = ["//visibility:public"],
 )

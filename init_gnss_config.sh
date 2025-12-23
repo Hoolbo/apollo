@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DEVICE="/dev/ttyUSB0"
+DEVICE="/dev/gps_serial"
 BAUD="115200"
 
 # Check if device exists
@@ -10,67 +10,75 @@ if [ ! -e "$DEVICE" ]; then
     exit 1
 fi
 
-# Configure serial port
-echo "Configuring $DEVICE to $BAUD..."
-stty -F $DEVICE $BAUD cs8 -cstopb -parenb
+# Configure serial port permissions
+echo "Setting permissions for $DEVICE..."
+sudo chmod 666 $DEVICE
 
-# Define commands based on the debugging document
-# 1. Coordinate alignment: -y, x, z (Based on installation)
-CMD_COORD='echo -e "$cmd,set,coordinate,-y,x,z*ff\r\n" > '$DEVICE
-# 2. Heading offset: 0 (Based on installation)
-CMD_HEAD='echo -e "$cmd,set,headoffset,0*ff\r\n" > '$DEVICE
-# 3. Lever arm: gnss, -0.135, 0, 0.104 (Based on installation)
-CMD_ARM='echo -e "$cmd,set,leverarm,gnss,-0.135,0,0.104*ff\r\n" > '$DEVICE
-# 4. Nav mode settings
-CMD_NAV1='echo -e "$cmd,set,navmode,FineAlign,off*ff\r\n" > '$DEVICE
-CMD_NAV2='echo -e "$cmd,set,navmode,coarsealign,off*ff\r\n" > '$DEVICE
-CMD_NAV3='echo -e "$cmd,set,navmode,dynamicalign,on*ff\r\n" > '$DEVICE
-CMD_NAV4='echo -e "$cmd,set,navmode,gnss,double*ff\r\n" > '$DEVICE
-CMD_NAV5='echo -e "$cmd,set,navmode,carmode,on*ff\r\n" > '$DEVICE
-CMD_NAV6='echo -e "$cmd,set,navmode,dmicali,off*ff\r\n" > '$DEVICE
-CMD_NAV7='echo -e "$cmd,set,navmode,zupt,on*ff\r\n" > '$DEVICE
-CMD_NAV8='echo -e "$cmd,set,navmode,firmwareindex,0*ff\r\n" > '$DEVICE
-CMD_OK='echo -e "$cmd,config,ok*ff\r\n" > '$DEVICE
-# 6. Save config
-CMD_SAVE='echo -e "$cmd,save,config*ff\r\n" > '$DEVICE
+# Open file descriptor 3 for reading and writing to the device
+# This prevents the port from closing and resetting between commands
+exec 3<> $DEVICE
+
+# Configure serial port using the file descriptor
+# -F $DEVICE is still needed for stty to target the correct hardware port, 
+# but keeping fd 3 open maintains the state.
+echo "Configuring $DEVICE to $BAUD..."
+stty -F $DEVICE $BAUD raw cs8 -cstopb -parenb
+
+# Commands
+# Using *ff as wildcard checksum as confirmed by user
+CMD_COORD='$cmd,set,coordinate,-y,x,z*ff'
+CMD_HEAD='$cmd,set,headoffset,0*ff'
+CMD_ARM='$cmd,set,leverarm,gnss,-0.135,0,0.104*ff'
+CMD_NAV1='$cmd,set,navmode,FineAlign,off*ff'
+CMD_NAV2='$cmd,set,navmode,coarsealign,off*ff'
+CMD_NAV3='$cmd,set,navmode,dynamicalign,on*ff'
+CMD_NAV4='$cmd,set,navmode,gnss,double*ff'
+CMD_NAV5='$cmd,set,navmode,carmode,on*ff'
+CMD_NAV6='$cmd,set,navmode,dmicali,off*ff'
+CMD_NAV7='$cmd,set,navmode,zupt,on*ff'
+CMD_NAV8='$cmd,set,navmode,firmwareindex,0*ff'
+CMD_OK='$cmd,config,ok*ff'
+CMD_SAVE='$cmd,save,config*ff'
 
 echo "Sending configuration commands..."
 
-# Execute commands with slight delays to ensure processing
+send_cmd() {
+    echo -e "$1\r" >&3
+    # Optional: Read response if needed, but for now we just wait specifically
+    sleep 0.2
+}
+
 echo "Setting Coordinate..."
-eval $CMD_COORD
+send_cmd "$CMD_COORD"
 sleep 1
 
 echo "Setting Heading Offset..."
-eval $CMD_HEAD
+send_cmd "$CMD_HEAD"
 sleep 1
 
 echo "Setting Lever Arm..."
-eval $CMD_ARM
+send_cmd "$CMD_ARM"
 sleep 1
 
 echo "Setting Nav Modes..."
-eval $CMD_NAV1
-sleep 0.2
-eval $CMD_NAV2
-sleep 0.2
-eval $CMD_NAV3
-sleep 0.2
-eval $CMD_NAV4
-sleep 0.2
-eval $CMD_NAV5
-sleep 0.2
-eval $CMD_NAV6
-sleep 0.2
-eval $CMD_NAV7
-sleep 0.2
-eval $CMD_NAV8
-sleep 0.2
-eval $CMD_OK
+send_cmd "$CMD_NAV1"
+send_cmd "$CMD_NAV2"
+send_cmd "$CMD_NAV3"
+send_cmd "$CMD_NAV4"
+send_cmd "$CMD_NAV5"
+send_cmd "$CMD_NAV6"
+send_cmd "$CMD_NAV7"
+send_cmd "$CMD_NAV8"
+
+echo "Confirming Config..."
+send_cmd "$CMD_OK"
 sleep 1
 
 echo "Saving Configuration..."
-eval $CMD_SAVE
+send_cmd "$CMD_SAVE"
 sleep 1
+
+# Close file descriptor
+exec 3>&-
 
 echo "Done. Please power cycle the GNSS device manually."

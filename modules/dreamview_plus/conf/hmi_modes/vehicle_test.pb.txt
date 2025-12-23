@@ -235,6 +235,23 @@ monitored_components {
     }
   }
 }
+global_components {
+  key: "DataRecorder"
+  value: {
+    process {
+        command_keywords: "cyber_recorder record"
+    }
+  }
+}
+global_components {
+  key: "RTKRecorder"
+  value: {
+    process {
+        command_keywords: "python3"
+        command_keywords: "rtk_recorder"
+    }
+  }
+}
 layout: {
     first: {
         direction: "column",

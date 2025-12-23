@@ -60,7 +60,7 @@ bool MycarVehicleFactory::Init(const CanbusConf* canbus_conf) {
   // 6. Create node for chassis detail
   node_ = ::apollo::cyber::CreateNode("mycar_factory");
   chassis_detail_writer_ =
-      node_->CreateWriter<::apollo::canbus::Mycar>(FLAGS_chassis_detail_topic);
+      node_->CreateWriter<::apollo::canbus::Mycar>(FLAGS_chassis_detail_topic + "/mycar");
 
   return true;
 }

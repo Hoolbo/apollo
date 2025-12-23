@@ -5,9 +5,6 @@
 #include <string>
 #include <thread>
 
-#define ACCEPT_USE_OF_DEPRECATED_PROJ_API_H
-#include "proj_api.h"
-
 #include "modules/common_msgs/localization_msgs/localization.pb.h"
 #include "modules/drivers/mycar_pos/proto/mycar_pos_conf.pb.h"
 
@@ -28,6 +25,7 @@ class MycarPosComponent : public apollo::cyber::Component<> {
   void ProcessData(const std::string& data);
   bool ParseGPFPD(const std::string& line, double* lat, double* lon,
                   double* heading, double* ve, double* vn, double* vu);
+  void GPS_XY(double lat, double lon, double* x, double* y);
 
   std::shared_ptr<
       apollo::cyber::Writer<apollo::localization::LocalizationEstimate>>
@@ -38,8 +36,13 @@ class MycarPosComponent : public apollo::cyber::Component<> {
   std::unique_ptr<std::thread> thread_;
   int fd_ = -1;
 
-  projPJ wgs84pj_source_ = nullptr;
-  projPJ utm_target_ = nullptr;
+  // Reference point for GPS to XY conversion
+  double ref_lat_ = 0.0;
+  double ref_lon_ = 0.0;
+  bool ref_initialized_ = false;
+
+  // Earth radius in meters
+  static constexpr int CONSTANTS_RADIUS_OF_EARTH = 6371000;
 };
 
 CYBER_REGISTER_COMPONENT(MycarPosComponent)
