@@ -12,6 +12,7 @@ export enum MainApiTypes {
     ResetRecordProgress = 'ResetRecordProgress',
     StartPlayRecorder = 'StartPlayRecorder',
     StartPlayRtkRecorder = 'StartPlayRtkRecorder',
+    StopPlayRtkRecorder = 'StopPlayRtkRecorder',
     PlayRecorderAction = 'PlayRecorderAction',
     HMIAction = 'HMIAction',
     SimHMIAction = 'SimHMIAction',

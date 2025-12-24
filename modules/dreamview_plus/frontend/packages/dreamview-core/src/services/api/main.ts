@@ -117,8 +117,7 @@ export class MainApi {
                 mergeMap((res) => {
                     if (res.data.info.code !== 0) {
                         logger.error(
-                            `Received error message from PluginRequest name: ${
-                                req.data.name
+                            `Received error message from PluginRequest name: ${req.data.name
                             }, message: ${JSON.stringify(res.data.info, null, 0)}`,
                         );
                         return throwError(new Error(res.data.info.message));
@@ -150,6 +149,16 @@ export class MainApi {
                 info: '',
             },
             type: MainApiTypes.StartPlayRtkRecorder,
+        });
+    }
+
+    stopPlayRTKRecorder() {
+        return this.request<'', undefined>({
+            data: {
+                name: '',
+                info: '',
+            },
+            type: MainApiTypes.StopPlayRtkRecorder,
         });
     }
 

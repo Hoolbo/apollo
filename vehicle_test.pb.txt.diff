@@ -1,0 +1,72 @@
+diff --git a/modules/dreamview_plus/conf/hmi_modes/vehicle_test.pb.txt b/modules/dreamview_plus/conf/hmi_modes/vehicle_test.pb.txt
+index abebde3e8f..8f3ae2a184 100644
+--- a/modules/dreamview_plus/conf/hmi_modes/vehicle_test.pb.txt
++++ b/modules/dreamview_plus/conf/hmi_modes/vehicle_test.pb.txt
+@@ -156,36 +156,26 @@ cyber_modules {
+   }
+ }
+ monitored_components {
+-  key: "Canbus"
++  key: "VehicleCanbus"
+   value: {
+     process {
+-      command_keywords: "mainboard"
+       command_keywords: "modules/canbus/dag/canbus.dag"
+     }
+-    channel {
+-      name: "/apollo/canbus/chassis_detail"
+-    }
+   }
+ }
+ monitored_components {
+-  key: "GNSS"
++  key: "CoreGNSS"
+   value: {
+     process {
+-      command_keywords: "mainboard"
+-      command_keywords: "modules/drivers/gnss/dag/gnss.dag"
++      command_keywords: "modules/drivers/mycar_pos/dag/mycar_pos.dag"
+     }
+-    # We also have a special GPSMonitor to check message status.
+   }
+ }
+ monitored_components {
+-  key: "RTK"
++  key: "CoreRTK"
+   value: {
+     process {
+-      command_keywords: "mainboard"
+-      command_keywords: "modules/localization/dag/dag_streaming_rtk_localization.dag"
+-    }
+-    channel {
+-      name: "/apollo/localization/pose"
++      command_keywords: "modules/drivers/mycar_pos/dag/mycar_pos.dag"
+     }
+   }
+ }
+@@ -198,19 +188,19 @@ monitored_components {
+   }
+ }
+ monitored_components {
+-  key: "GPS"
++  key: "CoreGPS"
+   value: {
+     process {
+-      command_keywords: "mainboard"
+-      command_keywords: "modules/drivers/gnss/dag/gnss.dag"
++      command_keywords: "modules/drivers/mycar_pos/dag/mycar_pos.dag"
+     }
+-    # We also have a special GPSMonitor to check message status.
+   }
+ }
+ monitored_components {
+-  key: "Localization"
++  key: "CoreLocalization"
+   value: {
+-    # Special LocalizationMonitor.
++    process {
++      command_keywords: "modules/drivers/mycar_pos/dag/mycar_pos.dag"
++    }
+   }
+ }
+ monitored_components {

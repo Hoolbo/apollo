@@ -44,7 +44,8 @@ global_components {
   key: "RTKPlayer"
   value: {
     process {
-        command_keywords: "record_play/rtk_player"
+        command_keywords: "python3"
+        command_keywords: "rtk_player"
     }
   }
 }

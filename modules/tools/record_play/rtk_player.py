@@ -155,11 +155,11 @@ class RtkPlayer(object):
         self.logger.debug("search_end: %s" % search_end)
         closest_dist_point = self.start
         self.logger.debug("self.start: %s" % self.start)
-            # Match gear if possible, otherwise just take the closest
-            if dist_sqr <= shortest_dist_sqr:
-                if not self.chassis_received or self.data['gear'][i] == self.chassis.gear_location:
-                    closest_dist_point = i
-                    shortest_dist_sqr = dist_sqr
+        # Match gear if possible, otherwise just take the closest
+        if dist_sqr <= shortest_dist_sqr:
+            if not self.chassis_received or self.data['gear'][i] == self.chassis.gear_location:
+                closest_dist_point = i
+                shortest_dist_sqr = dist_sqr
 
         # failed to find a trajectory matches current gear position
         if shortest_dist_sqr == float('inf'):

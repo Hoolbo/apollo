@@ -1,0 +1,10 @@
+module_config {
+    module_library : "modules/drivers/ins/libins_component.so"
+    components {
+        class_name : "InsComponent"
+        config {
+            name : "ins"
+            config_file_path : "/apollo_workspace/modules/drivers/ins/conf/ins.conf"
+        }
+    }
+}

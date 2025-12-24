@@ -1,0 +1,7 @@
+<cyber>
+    <module>
+        <name>ins</name>
+        <dag_conf>/apollo/modules/drivers/ins/dag/ins.dag</dag_conf>
+        <process_name>ins</process_name>
+    </module>
+</cyber>

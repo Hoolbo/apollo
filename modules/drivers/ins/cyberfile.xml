@@ -1,7 +1,7 @@
 <package format="2">
-  <name>mycar-pos</name>
+  <name>ins</name>
   <version>local</version>
-  <description>Mycar proprietary GNSS/INS positioning driver</description>
+  <description>Integrated Navigation System (INS) driver - provides GNSS, IMU, and localization data</description>
   <maintainer email="your_email@example.com">Your Name</maintainer>
   <license>Apache License 2.0</license>
   <url type="website">https://apollo.auto</url>
@@ -21,5 +21,5 @@
   <depend expose="False">3rd-py</depend>
 
   <type>module</type>
-  <src_path>//modules/drivers/mycar_pos</src_path>
+  <src_path>//modules/drivers/ins</src_path>
 </package>

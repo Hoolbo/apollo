@@ -27,6 +27,20 @@ function WayFollowBtn() {
             });
     }, [mainApi, isMainConnected]);
 
+    const handleStopWayFollow = useCallback(() => {
+        if (!isMainConnected) {
+            return;
+        }
+        mainApi
+            .stopPlayRTKRecorder()
+            .then(() => {
+                logger.debug('stop play rtkRecorder');
+            })
+            .catch((err) => {
+                message({ type: 'error', content: err.data?.info?.message || 'Failed to stop' });
+            });
+    }, [mainApi, isMainConnected]);
+
     const btnStatus = (() => {
         if ((hmi?.globalComponents.RTKPlayer.processStatus.status as unknown) === PlayRTKRecordStatus.FATAL) {
             return DynamicEffectButtonStatus.START;
@@ -47,6 +61,7 @@ function WayFollowBtn() {
                     },
                     [DynamicEffectButtonStatus.RUNNING]: {
                         text: 'RUNNING',
+                        clickHandler: handleStopWayFollow,
                     },
                     [DynamicEffectButtonStatus.DISABLE]: {
                         disabledMsg: 'Please record the trajectory first, and select the corresponding record.',
@@ -60,3 +75,4 @@ function WayFollowBtn() {
 }
 
 export const WayFollowBtnMemo = React.memo(WayFollowBtn);
+

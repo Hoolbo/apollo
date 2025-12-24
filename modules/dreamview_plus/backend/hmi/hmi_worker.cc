@@ -2016,6 +2016,7 @@ bool HMIWorker::StopRtkDataRecorder() {
 
 Json HMIWorker::StartPlayRtkRecorder() {
   Json result;
+  // Skipped: User's vehicle uses physical buttons to switch driving modes
   // if (!ChangeDrivingMode(Chassis::COMPLETE_AUTO_DRIVE)) {
   //   AERROR << "Failed to play rtk: Failed to enter auto drive.";
   //   result["error"] = "Failed to enter auto drive";
@@ -2031,11 +2032,11 @@ Json HMIWorker::StartPlayRtkRecorder() {
       "nohup /apollo/scripts/rtk_player.sh start " + record_id + " &";
   int ret = std::system(start_cmd.data());
   if (ret == 0) {
-    AINFO << "Start the rtk_recorder process Successful.";
+    AINFO << "Start the rtk_player process Successful.";
     result["isOk"] = true;
   } else {
-    AERROR << "Failed to play rtk: Failed to start the rtk_recorder process.";
-    result["error"] = "Failed to start the rtk_recorder process";
+    AERROR << "Failed to play rtk: Failed to start the rtk_player process.";
+    result["error"] = "Failed to start the rtk_player process";
     result["isOk"] = false;
   }
   return result;
