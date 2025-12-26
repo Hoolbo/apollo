@@ -53,7 +53,7 @@ class InsComponent : public apollo::cyber::Component<> {
   // LocalizationEstimate writer (main output)
   std::shared_ptr<
       apollo::cyber::Writer<apollo::localization::LocalizationEstimate>>
-      writer_;
+      localization_estimate_writer_;
 
   // GNSS module emulation writers
   std::shared_ptr<apollo::cyber::Writer<apollo::drivers::gnss::GnssBestPose>>

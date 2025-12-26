@@ -8,4 +8,10 @@ message InsConf {
   // Default to UTM zone 50 (Beijing/Xi'an area approx), user should change this
   optional string proj4_text = 3 [default = "+proj=utm +zone=50 +ellps=WGS84"];
   optional string topic = 4 [default = "/apollo/localization/pose"];
+
+  // Fixed origin configuration
+  optional bool use_fixed_origin = 5 [default = false];
+  optional double origin_lat = 6;
+  optional double origin_lon = 7;
+  optional double origin_alt = 8;
 }

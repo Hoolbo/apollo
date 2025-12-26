@@ -58,7 +58,8 @@ bool InsComponent::Init() {
   AINFO << "INS config: " << conf_.DebugString();
 
   // Create all writers
-  writer_ = node_->CreateWriter<LocalizationEstimate>(conf_.topic());
+  localization_estimate_writer_ =
+      node_->CreateWriter<LocalizationEstimate>("/apollo/localization/pose");
 
   // GNSS module emulation writers
   gnss_best_pose_writer_ =
@@ -148,14 +149,22 @@ void InsComponent::ProcessData(const std::string& line) {
 
   double timestamp = cyber::Time::Now().ToSecond();
 
-  // Initialize reference point with first GPS reading (3D origin)
+  // Initialize reference point (3D origin)
   if (!ref_initialized_) {
-    ref_lat_ = gpfpd.latitude;
-    ref_lon_ = gpfpd.longitude;
-    ref_alt_ = gpfpd.altitude;
+    if (conf_.use_fixed_origin()) {
+      ref_lat_ = conf_.origin_lat();
+      ref_lon_ = conf_.origin_lon();
+      ref_alt_ = conf_.origin_alt();
+      AINFO << "MPS: Using FIXED GPS origin: lat=" << ref_lat_
+            << ", lon=" << ref_lon_ << ", alt=" << ref_alt_;
+    } else {
+      ref_lat_ = gpfpd.latitude;
+      ref_lon_ = gpfpd.longitude;
+      ref_alt_ = gpfpd.altitude;
+      AINFO << "MPS: Using DYNAMIC GPS origin (first point): lat=" << ref_lat_
+            << ", lon=" << ref_lon_ << ", alt=" << ref_alt_;
+    }
     ref_initialized_ = true;
-    AINFO << "GPS reference point initialized: lat=" << ref_lat_
-          << ", lon=" << ref_lon_ << ", alt=" << ref_alt_;
   }
 
   // Convert GPS to local XYZ coordinates (relative to first point)
@@ -209,7 +218,7 @@ void InsComponent::ProcessData(const std::string& line) {
   loc_msg->mutable_pose()->mutable_angular_velocity_vrf()->set_y(0.0);
   loc_msg->mutable_pose()->mutable_angular_velocity_vrf()->set_z(0.0);
 
-  writer_->Write(loc_msg);
+  localization_estimate_writer_->Write(loc_msg);
 
   // ========== 2. Publish GnssBestPose (for GpsMonitor) ==========
   auto best_pose_msg = std::make_shared<GnssBestPose>();
