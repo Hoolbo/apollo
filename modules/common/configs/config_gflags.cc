@@ -87,5 +87,5 @@ DEFINE_bool(multithread_run, false,
             "multi-thread run flag mainly used by simulation");
 
 // localization
-DEFINE_bool(enable_map_reference_unify, true,
+DEFINE_bool(enable_map_reference_unify, false,
             "enable IMU data convert to map reference");

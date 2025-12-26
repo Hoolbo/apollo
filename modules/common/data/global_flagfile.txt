@@ -11,13 +11,12 @@
 
 --use_navigation_mode=false
 
---map_dir=modules/map/data/sunnyvale_loop
+--map_dir=modules/map/data/borregas_ave
+# --map_dir=modules/map/data/sunnyvale_loop
+# --map_dir=modules/map/data/sunnyvale
+# --map_dir=modules/map/data/sunnyvale_big_loop
 
---use_sim_time=false
 
---use_cyber_time=true
+--enable_map_reference_unify=false
 
---map_dir=modules/map/data/sunnyvale
-
---map_dir=modules/map/data/sunnyvale_big_loop
-
+--enable_map_reference_unify=false

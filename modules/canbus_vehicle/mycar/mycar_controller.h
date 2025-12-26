@@ -37,6 +37,9 @@ class MycarController final
   Chassis chassis() override;
   void AddSendMessage() override;
 
+  // Override Update to handle speed control directly
+  common::ErrorCode Update(const control::ControlCommand& command) override;
+
   // Control Commands
   void Brake(double brake) override;
   void Throttle(double throttle) override;

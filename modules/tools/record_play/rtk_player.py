@@ -112,6 +112,15 @@ class RtkPlayer(object):
         self.carz = self.localization.pose.position.z
         self.localization_received = True
 
+        # Clean data: handle NaNs and ensure data types
+        for col in self.data:
+            self.data[col] = [0.0 if str(x).lower() == 'nan' else x for x in self.data[col]]
+        
+        # Auto gear correction: if speed > 0.1 but gear is Parking, set to Drive
+        for i in range(len(self.data)):
+            if self.data['speed'][i] > 0.1 and self.data['gear'][i] == chassis_pb2.Chassis.GEAR_PARKING:
+                self.data['gear'][i] = chassis_pb2.Chassis.GEAR_DRIVE
+
     def chassis_callback(self, data):
         """
         New chassis Received
@@ -156,10 +165,13 @@ class RtkPlayer(object):
         closest_dist_point = self.start
         self.logger.debug("self.start: %s" % self.start)
         # Match gear if possible, otherwise just take the closest
-        if dist_sqr <= shortest_dist_sqr:
-            if not self.chassis_received or self.data['gear'][i] == self.chassis.gear_location:
-                closest_dist_point = i
-                shortest_dist_sqr = dist_sqr
+        for i in range(search_start, search_end):
+            dist_sqr = (self.data['x'][i] - self.carx)**2 + \
+                (self.data['y'][i] - self.cary)**2
+            if dist_sqr <= shortest_dist_sqr:
+                if not self.chassis_received or self.data['gear'][i] == self.chassis.gear_location:
+                    closest_dist_point = i
+                    shortest_dist_sqr = dist_sqr
 
         # failed to find a trajectory matches current gear position
         if shortest_dist_sqr == float('inf'):
@@ -254,6 +266,11 @@ class RtkPlayer(object):
             if xdiff_sqr + ydiff_sqr > 4.0:
                 self.logger.info("trigger replan: distance larger than 2.0")
                 self.restart()
+        
+        # Looping logic: if we reached the end, restart
+        if self.start >= len(self.data) - 5:
+            self.logger.info("Reached end of trajectory, looping...")
+            self.restart()
 
         if self.completepath:
             self.start = 0
@@ -265,8 +282,8 @@ class RtkPlayer(object):
 
         planningdata.total_path_length = self.data['s'][self.end] - \
             self.data['s'][self.start]
-        self.logger.info("total number of planning data point: %d" %
-                         (self.end - self.start))
+        self.logger.info("total number of planning data point: %d, start_v: %.2f" %
+                         (self.end - self.start, self.data['speed'][self.start]))
         planningdata.total_path_time = self.data['time'][self.end] - \
             self.data['time'][self.start]
         planningdata.gear = int(self.data['gear'][self.closest_time()])

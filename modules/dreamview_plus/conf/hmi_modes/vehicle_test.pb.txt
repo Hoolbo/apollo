@@ -120,7 +120,7 @@ cyber_modules {
   }
 }
 cyber_modules {
-  key: "MycarGNSS"
+  key: "Ins"
   value: {
     dag_files: "modules/drivers/ins/dag/ins.dag"
   }

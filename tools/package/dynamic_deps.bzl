@@ -17,29 +17,10 @@
 STATUS = 2
 
 SOURCE = {
-    "apollo-scripts" : {
-        "path": "//scripts",
-        "depends": [
-            
-        ],
-    },
-    "3rd-tf2" : {
-        "path": "//third_party/tf2",
-        "depends": [
-            "3rd-boost",
-            
-        ],
-    },
     "common-msgs" : {
         "path": "//modules/common_msgs",
         "depends": [
             "3rd-protobuf",
-            
-        ],
-    },
-    "calibration" : {
-        "path": "//modules/calibration",
-        "depends": [
             
         ],
     },
@@ -91,150 +72,6 @@ SOURCE = {
             
         ],
     },
-    "map" : {
-        "path": "//modules/map",
-        "depends": [
-            "3rd-absl",
-            "3rd-boost",
-            "3rd-eigen3",
-            "3rd-fastdds-wrap",
-            "3rd-gflags",
-            "3rd-glog",
-            "3rd-gtest",
-            "3rd-nlohmann-json",
-            "3rd-osqp",
-            "3rd-proj",
-            "3rd-protobuf",
-            "3rd-yaml-cpp",
-            "bvar",
-            "gperftools",
-            "libncurses5-dev",
-            "libsqlite3-dev",
-            "libtinyxml2-dev",
-            "libunwind-dev",
-            "nethogs",
-            "sysstat",
-            "uuid-dev",
-            
-        ],
-    },
-    "transform" : {
-        "path": "//modules/transform",
-        "depends": [
-            "3rd-absl",
-            "3rd-boost",
-            "3rd-eigen3",
-            "3rd-fastdds-wrap",
-            "3rd-gflags",
-            "3rd-glog",
-            "3rd-gtest",
-            "3rd-nlohmann-json",
-            "3rd-osqp",
-            "3rd-proj",
-            "3rd-protobuf",
-            "3rd-yaml-cpp",
-            "bvar",
-            "gperftools",
-            "libncurses5-dev",
-            "libsqlite3-dev",
-            "libtinyxml2-dev",
-            "libunwind-dev",
-            "nethogs",
-            "sysstat",
-            "uuid-dev",
-            
-        ],
-    },
-    "dreamview" : {
-        "path": "//modules/dreamview",
-        "depends": [
-            "3rd-absl",
-            "3rd-boost",
-            "3rd-civetweb",
-            "3rd-eigen3",
-            "3rd-fastdds-wrap",
-            "3rd-gflags",
-            "3rd-glog",
-            "3rd-gtest",
-            "3rd-nlohmann-json",
-            "3rd-opencv",
-            "3rd-osqp",
-            "3rd-proj",
-            "3rd-protobuf",
-            "3rd-yaml-cpp",
-            "bvar",
-            "gperftools",
-            "libdouble-conversion-dev",
-            "libflann-dev",
-            "libfreetype6",
-            "libgl1-mesa-dev",
-            "libglew-dev",
-            "libgtk2.0-0",
-            "libhdf5-dev",
-            "libjsoncpp-dev",
-            "libncurses5-dev",
-            "libopenni0",
-            "libpcap0.8",
-            "libqhull-dev",
-            "libsqlite3-dev",
-            "libtiff5",
-            "libtinyxml2-dev",
-            "libunwind-dev",
-            "libusb-1.0-0",
-            "libwebp-dev",
-            "libxml2-dev",
-            "libxt-dev",
-            "nethogs",
-            "sysstat",
-            "uuid-dev",
-            
-        ],
-    },
-    "dreamview-plus" : {
-        "path": "//modules/dreamview_plus",
-        "depends": [
-            "3rd-absl",
-            "3rd-boost",
-            "3rd-civetweb",
-            "3rd-eigen3",
-            "3rd-fastdds-wrap",
-            "3rd-gflags",
-            "3rd-glog",
-            "3rd-gtest",
-            "3rd-nlohmann-json",
-            "3rd-opencv",
-            "3rd-osqp",
-            "3rd-proj",
-            "3rd-protobuf",
-            "3rd-yaml-cpp",
-            "bvar",
-            "gperftools",
-            "libdouble-conversion-dev",
-            "libflann-dev",
-            "libfreetype6",
-            "libgl1-mesa-dev",
-            "libglew-dev",
-            "libgtk2.0-0",
-            "libhdf5-dev",
-            "libjsoncpp-dev",
-            "libncurses5-dev",
-            "libopenni0",
-            "libpcap0.8",
-            "libqhull-dev",
-            "libsqlite3-dev",
-            "libtiff5",
-            "libtinyxml2-dev",
-            "libunwind-dev",
-            "libusb-1.0-0",
-            "libwebp-dev",
-            "libxml2-dev",
-            "libxt-dev",
-            "nethogs",
-            "sysstat",
-            "uuid-dev",
-            
-        ],
-    },
     
 }
 
@@ -242,13 +79,6 @@ BINARY = {
     "bazel-extend-tools" : {
         "path": "//tools",
         "targets": [
-            
-        ],
-    },
-    "3rd-boost" : {
-        "path": "//third_party/boost",
-        "targets": [
-            "@boost//:boost",
             
         ],
     },
@@ -387,139 +217,10 @@ BINARY = {
             
         ],
     },
-    "3rd-yaml-cpp" : {
-        "path": "//third_party/yaml_cpp",
+    "3rd-boost" : {
+        "path": "//third_party/boost",
         "targets": [
-            "@com_github_jbeder_yaml_cpp//:yaml-cpp",
-            
-        ],
-    },
-    "3rd-civetweb" : {
-        "path": "//third_party/civetweb",
-        "targets": [
-            "@civetweb//:civetweb++",
-            
-        ],
-    },
-    "3rd-opencv" : {
-        "path": "//third_party/opencv",
-        "targets": [
-            "@opencv//:core",
-            "@opencv//:highgui",
-            "@opencv//:imgcodecs",
-            "@opencv//:imgproc",
-            
-        ],
-    },
-    "libgtk2.0-0" : {
-        "path": "None",
-        "targets": [
-            "@libgtk2.0-0//:libgtk2.0-0",
-            
-        ],
-    },
-    "libwebp-dev" : {
-        "path": "None",
-        "targets": [
-            "@libwebp-dev//:libwebp-dev",
-            
-        ],
-    },
-    "libusb-1.0-0" : {
-        "path": "None",
-        "targets": [
-            "@libusb-1.0-0//:libusb-1.0-0",
-            
-        ],
-    },
-    "libopenni0" : {
-        "path": "None",
-        "targets": [
-            "@libopenni0//:libopenni0",
-            
-        ],
-    },
-    "libfreetype6" : {
-        "path": "None",
-        "targets": [
-            "@libfreetype6//:libfreetype6",
-            
-        ],
-    },
-    "libtiff5" : {
-        "path": "None",
-        "targets": [
-            "@libtiff5//:libtiff5",
-            
-        ],
-    },
-    "libdouble-conversion-dev" : {
-        "path": "None",
-        "targets": [
-            "@libdouble-conversion-dev//:libdouble-conversion-dev",
-            
-        ],
-    },
-    "libpcap0.8" : {
-        "path": "None",
-        "targets": [
-            "@libpcap0.8//:libpcap0.8",
-            
-        ],
-    },
-    "libqhull-dev" : {
-        "path": "None",
-        "targets": [
-            "@libqhull-dev//:libqhull-dev",
-            
-        ],
-    },
-    "libflann-dev" : {
-        "path": "None",
-        "targets": [
-            "@libflann-dev//:libflann-dev",
-            
-        ],
-    },
-    "libglew-dev" : {
-        "path": "None",
-        "targets": [
-            "@libglew-dev//:libglew-dev",
-            
-        ],
-    },
-    "libxml2-dev" : {
-        "path": "None",
-        "targets": [
-            "@libxml2-dev//:libxml2-dev",
-            
-        ],
-    },
-    "libjsoncpp-dev" : {
-        "path": "None",
-        "targets": [
-            "@libjsoncpp-dev//:libjsoncpp-dev",
-            
-        ],
-    },
-    "libhdf5-dev" : {
-        "path": "None",
-        "targets": [
-            "@libhdf5-dev//:libhdf5-dev",
-            
-        ],
-    },
-    "libgl1-mesa-dev" : {
-        "path": "None",
-        "targets": [
-            "@libgl1-mesa-dev//:libgl1-mesa-dev",
-            
-        ],
-    },
-    "libxt-dev" : {
-        "path": "None",
-        "targets": [
-            "@libxt-dev//:libxt-dev",
+            "@boost//:boost",
             
         ],
     },

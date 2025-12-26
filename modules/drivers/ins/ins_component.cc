@@ -108,14 +108,7 @@ bool InsComponent::ConfigureSerialPort() {
 
   tcsetattr(fd_, TCSANOW, &options);
 
-  // Send init command
-  std::string cmd = "$cmd,output,com0,gpfpd,0.05*ff\r\n";
-  int n = write(fd_, cmd.c_str(), cmd.size());
-  if (n < 0) {
-    AERROR << "Failed to write init command";
-    return false;
-  }
-  AINFO << "Sent init command: " << cmd;
+  AINFO << "Serial port configured, waiting for GPFPD data from INS device";
   return true;
 }
 
@@ -155,22 +148,24 @@ void InsComponent::ProcessData(const std::string& line) {
 
   double timestamp = cyber::Time::Now().ToSecond();
 
-  // Initialize reference point with first GPS reading
+  // Initialize reference point with first GPS reading (3D origin)
   if (!ref_initialized_) {
     ref_lat_ = gpfpd.latitude;
     ref_lon_ = gpfpd.longitude;
+    ref_alt_ = gpfpd.altitude;
     ref_initialized_ = true;
     AINFO << "GPS reference point initialized: lat=" << ref_lat_
-          << ", lon=" << ref_lon_;
+          << ", lon=" << ref_lon_ << ", alt=" << ref_alt_;
   }
 
-  // Convert GPS to local XY coordinates
+  // Convert GPS to local XYZ coordinates (relative to first point)
   double x = 0.0;
   double y = 0.0;
-  double z = gpfpd.altitude;
+  double z = gpfpd.altitude - ref_alt_;  // Relative altitude
   GPS_XY(gpfpd.latitude, gpfpd.longitude, &x, &y);
 
   // Convert heading: GPFPD (North=0, CW) -> Apollo (East=0, CCW)
+  // Device configured with headoffset=180 to output North=0 format
   double apollo_theta = (90.0 - gpfpd.heading) * DEG_TO_RAD;
 
   Eigen::Quaterniond q =
@@ -205,6 +200,14 @@ void InsComponent::ProcessData(const std::string& line) {
   loc_msg->mutable_pose()->mutable_euler_angles()->set_y(gpfpd.pitch *
                                                          DEG_TO_RAD);
   loc_msg->mutable_pose()->mutable_euler_angles()->set_z(apollo_theta);
+
+  // Angular velocity in Vehicle Reference Frame (VRF)
+  // Required by Control module when FLAGS_enable_map_reference_unify is true
+  // GPFPD doesn't provide angular velocity, so we use zeros
+  // This is acceptable for low-speed RTK playback scenarios
+  loc_msg->mutable_pose()->mutable_angular_velocity_vrf()->set_x(0.0);
+  loc_msg->mutable_pose()->mutable_angular_velocity_vrf()->set_y(0.0);
+  loc_msg->mutable_pose()->mutable_angular_velocity_vrf()->set_z(0.0);
 
   writer_->Write(loc_msg);
 

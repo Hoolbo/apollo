@@ -113,7 +113,44 @@ void MycarController::Stop() {
 
 void MycarController::AddSendMessage() {
   can_sender_->AddMessage(AcuDrivemotor563::ID, drive_motor_563_);
+  can_sender_->AddMessage(AcuDrivemotor563::ID, drive_motor_563_);
   can_sender_->AddMessage(AcuEps547::ID, eps_547_);
+}
+
+ErrorCode MycarController::Update(const ControlCommand& command) {
+  if (driving_mode() != Chassis::COMPLETE_AUTO_DRIVE &&
+      driving_mode() != Chassis::AUTO_SPEED_ONLY &&
+      driving_mode() != Chassis::AUTO_STEER_ONLY) {
+    return ErrorCode::OK;
+  }
+
+  // 1. Gear Control
+  Gear(command.gear_location());
+
+  // 2. Speed Control (Longitudinal)
+  if (driving_mode() == Chassis::COMPLETE_AUTO_DRIVE ||
+      driving_mode() == Chassis::AUTO_SPEED_ONLY) {
+    // Map m/s to km/h
+    double target_speed_kmh = command.speed() * 3.6;
+
+    // Ensure speed is positive magnitude (direction handled by Gear)
+    if (target_speed_kmh < 0) {
+      target_speed_kmh = std::abs(target_speed_kmh);
+    }
+
+    drive_motor_563_->set_drive_motor_speed(target_speed_kmh);
+    drive_motor_563_->set_drive_motor_enable(true);
+    drive_motor_563_->set_drive_motor_mode(0);  // 0: Speed Mode
+  }
+
+  // 3. Steering Control (Lateral)
+  if (driving_mode() == Chassis::COMPLETE_AUTO_DRIVE ||
+      driving_mode() == Chassis::AUTO_STEER_ONLY) {
+    Steer(command.steering_target());
+  }
+
+  can_sender_->Update();
+  return ErrorCode::OK;
 }
 
 Chassis MycarController::chassis() {
@@ -132,19 +169,38 @@ Chassis MycarController::chassis() {
   }
 
   // 2. Report Chassis Steering
+  // EPS反馈: 左转为负(-0 to -120), 右转为正(0 to 120) - 这是方向盘/电机角度
+  // Apollo约定: 左转为正, 右转为负 - 需要的是车轮角度
+  // 转换步骤:
+  //   1. 符号反转: EPS左转(负) -> Apollo左转(正)
+  //   2. 转向比换算: 方向盘角度 / steer_ratio = 车轮角度
   if (chassis_detail.has_eps_acu_556() &&
       chassis_detail.eps_acu_556().has_eps_angle()) {
-    double eps_angle = chassis_detail.eps_acu_556().eps_angle();
-    // Convert deg to percentage [-100, 100]
-    // vehicle_params_.max_steer_angle() is in radians
-    double max_steer_angle_deg =
-        vehicle_params_.max_steer_angle() * 180.0 / 3.1415926535;
-    if (max_steer_angle_deg > 0) {
-      double steering_percentage = (eps_angle / max_steer_angle_deg) * 100.0;
+    // Step 1: 符号反转 - 车辆左转(负) -> Apollo左转(正)
+    double eps_angle = -1.0 * chassis_detail.eps_acu_556().eps_angle();
+
+    // Step 2: 转向比换算 - 方向盘角度转车轮角度
+    // steer_ratio = 6.0, 即方向盘转6度 = 车轮转1度
+    // 车轮角度 = 方向盘角度 / steer_ratio
+    double steer_ratio = vehicle_params_.steer_ratio();
+    double wheel_angle = eps_angle / steer_ratio;
+
+    // 计算百分比: 车轮角度范围是 ±(max_steer_angle / steer_ratio)
+    // max_steer_angle = 2.0944 rad (120°), 对应车轮最大角度 = 120° / 6 = 20°
+    double max_wheel_angle_deg =
+        (vehicle_params_.max_steer_angle() * 180.0 / M_PI) / steer_ratio;
+
+    if (max_wheel_angle_deg > 0) {
+      // 百分比 = (当前车轮角度 / 最大车轮角度) * 100
+      double steering_percentage = (wheel_angle / max_wheel_angle_deg) * 100.0;
       chassis_.set_steering_percentage(
           ::apollo::drivers::canbus::ProtocolData<
               ::apollo::canbus::Mycar>::BoundedValue(-100.0, 100.0,
                                                      steering_percentage));
+
+      AINFO << "Steering feedback: eps_angle=" << eps_angle
+            << ", wheel_angle=" << wheel_angle
+            << ", percentage=" << steering_percentage;
     }
   }
 
@@ -174,13 +230,25 @@ Chassis MycarController::chassis() {
     chassis_.set_error_code(Chassis::NO_ERROR);
   }
 
-  // 5. Gear
-  if (chassis_detail.has_drivemotor_acu_572()) {
+  // 5. Gear - 车辆CAN值: SHIFT_D=1(车辆后退), SHIFT_R=2(车辆前进)
+  //         Apollo: GEAR_DRIVE=1(前进), GEAR_REVERSE=2(后退)
+  //         遥控模式下档位不可靠，默认使用GEAR_DRIVE
+  bool is_remote_control =
+      chassis_detail.has_vcu_acu_general_524() &&
+      chassis_detail.vcu_acu_general_524().has_acu_remote_control() &&
+      chassis_detail.vcu_acu_general_524().acu_remote_control();
+  if (is_remote_control) {
+    // 遥控模式：档位信息不可靠，默认为前进档
+    chassis_.set_gear_location(Chassis::GEAR_DRIVE);
+  } else if (chassis_detail.has_drivemotor_acu_572()) {
+    // 自动驾驶模式：按CAN消息解析真实档位
     auto shift = chassis_detail.drivemotor_acu_572().drive_motor_shift();
     if (shift == ::apollo::canbus::MycarDrivemotorAcu572::SHIFT_R)
-      chassis_.set_gear_location(Chassis::GEAR_DRIVE);
+      chassis_.set_gear_location(
+          Chassis::GEAR_DRIVE);  // SHIFT_R(值2,车辆前进) → GEAR_DRIVE
     else if (shift == ::apollo::canbus::MycarDrivemotorAcu572::SHIFT_D)
-      chassis_.set_gear_location(Chassis::GEAR_REVERSE);
+      chassis_.set_gear_location(
+          Chassis::GEAR_REVERSE);  // SHIFT_D(值1,车辆后退) → GEAR_REVERSE
     else if (shift == ::apollo::canbus::MycarDrivemotorAcu572::SHIFT_P)
       chassis_.set_gear_location(Chassis::GEAR_PARKING);
     else
@@ -218,40 +286,40 @@ void MycarController::Brake(double brake) {
 }
 
 void MycarController::Throttle(double throttle) {
-  if (driving_mode() != Chassis::COMPLETE_AUTO_DRIVE &&
-      driving_mode() != Chassis::AUTO_SPEED_ONLY) {
-    AINFO << "The current driving mode is not AUTO_DRIVE or SPEED_ONLY.";
-    return;
-  }
-  // Mycar specific throttle logic
-  // Map throttle (0-100) to speed (m/s)
-  // Assuming max speed is 10 m/s (~36 km/h) for teleop
-  const double kMaxSpeedMps = 2.0;
-  double speed_mps = (throttle / 100.0) * kMaxSpeedMps;
-
-  drive_motor_563_->set_drive_motor_speed(speed_mps * 3.6);  // Convert to km/h
-  drive_motor_563_->set_drive_motor_enable(true);
-  drive_motor_563_->set_drive_motor_mode(0);  // 0 for Speed Mode
+  // Logic removed to prevent conflict with Update()
+  // Speed is now controlled directly via Update() -> set_drive_motor_speed
+  // AINFO << "MycarController::Throttle called (Ignored): " << throttle;
 }
 
 void MycarController::Speed(double speed) {
-  // Ignore 0 speed command from default ControlCommand if throttle was used
-  if (std::abs(speed) < 1e-6) {
-    return;
-  }
   AINFO << "MycarController::Speed called with: " << speed;
-  drive_motor_563_->set_drive_motor_speed(speed * 3.6);
+  drive_motor_563_->set_drive_motor_speed(speed * 3.6);  // Convert m/s to km/h
   drive_motor_563_->set_drive_motor_enable(true);
   drive_motor_563_->set_drive_motor_mode(0);  // 0 for Speed Mode
 }
 
 void MycarController::Steer(double angle) {
-  AINFO << "MycarController::Steer called with: " << angle;
-  const double max_angle = vehicle_params_.max_steer_angle();
-  //乘reverse因为实际车辆的转向和CAN消息的转向相反
-  int reverse = -1;
-  const double target_angle = reverse * (angle / 100.0) * max_angle * (180.0 / 3.1415926);
-  eps_547_->set_eps_angle(target_angle);
+  // Apollo输入: 百分比 [-100, 100], 左转为正, 右转为负
+  // EPS需要: 角度 [-120, 120], 左转为负, 右转为正
+  // 因此需要符号反转
+
+  // max_steer_angle 是EPS最大角度的弧度值 (120° = 2.0944 rad)
+  const double max_angle_rad = vehicle_params_.max_steer_angle();
+
+  // Step 1: 百分比 -> 弧度
+  // target_rad = (percentage / 100.0) * max_angle_rad
+  double target_rad = (angle / 100.0) * max_angle_rad;
+
+  // Step 2: 弧度 -> 角度
+  double target_deg = target_rad * 180.0 / M_PI;
+
+  // Step 3: 符号反转 - Apollo左转(正) -> EPS左转(负)
+  double eps_command = -1.0 * target_deg;
+
+  AINFO << "Steer: percentage=" << angle << ", target_rad=" << target_rad
+        << ", target_deg=" << target_deg << ", eps_command=" << eps_command;
+
+  eps_547_->set_eps_angle(eps_command);
   eps_547_->set_eps_enable(true);
 }
 
@@ -265,12 +333,16 @@ void MycarController::Gear(Chassis::GearPosition gear_position) {
     return;
   }
 
+  // Apollo: GEAR_DRIVE(前进), GEAR_REVERSE(后退)
+  // 车辆CAN: SHIFT_R=2(车辆前进), SHIFT_D=1(车辆后退)
   if (gear_position == Chassis::GEAR_DRIVE)
     drive_motor_563_->set_drive_motor_shift(
-        ::apollo::canbus::MycarAcuDrivemotor563::SHIFT_R);
+        ::apollo::canbus::MycarAcuDrivemotor563::
+            SHIFT_R);  // 前进 → SHIFT_R(值2,车辆前进)
   else if (gear_position == Chassis::GEAR_REVERSE)
     drive_motor_563_->set_drive_motor_shift(
-        ::apollo::canbus::MycarAcuDrivemotor563::SHIFT_D);
+        ::apollo::canbus::MycarAcuDrivemotor563::
+            SHIFT_D);  // 后退 → SHIFT_D(值1,车辆后退)
   else if (gear_position == Chassis::GEAR_PARKING)
     drive_motor_563_->set_drive_motor_shift(
         ::apollo::canbus::MycarAcuDrivemotor563::SHIFT_P);

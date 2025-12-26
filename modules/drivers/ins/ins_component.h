@@ -78,9 +78,10 @@ class InsComponent : public apollo::cyber::Component<> {
   std::unique_ptr<std::thread> thread_;
   int fd_ = -1;
 
-  // Reference point for GPS to XY conversion
+  // Reference point for GPS to XYZ conversion (first point as origin)
   double ref_lat_ = 0.0;
   double ref_lon_ = 0.0;
+  double ref_alt_ = 0.0;
   bool ref_initialized_ = false;
 
   // Earth radius in meters
