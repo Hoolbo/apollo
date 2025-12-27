@@ -36,6 +36,8 @@ apollo_plugin(
         "//modules/planning/planning_interface_base:apollo_planning_planning_interface_base",
         "@com_github_gflags_gflags//:gflags",
         "@eigen",
+        "//modules/planning/tasks/replayer:libreplayer_task.so",
+
     ],
 )
 

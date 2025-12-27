@@ -3,6 +3,10 @@ stage: {
   type: "LaneFollowStage"
   enabled: true
   task {
+    name: "REPLAYER_TASK"
+    type: "apollo::planning::ReplayerTask"
+  }
+  task {
     name: "LANE_CHANGE_PATH"
     type: "LaneChangePath"
   }

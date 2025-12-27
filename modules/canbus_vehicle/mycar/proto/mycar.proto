@@ -1,0 +1,62 @@
+syntax = "proto2";
+
+package apollo.canbus;
+
+import "modules/common_msgs/basic_msgs/header.proto";
+
+message Mycar {
+  optional apollo.common.Header header = 1;
+  optional MycarAcuEps547 acu_eps_547 = 2; // Control command
+  optional MycarAcuDrivemotor563 acu_drivemotor_563 = 3; // Control command
+  optional MycarEpsAcu556 eps_acu_556 = 4; // Feedback
+  optional MycarDrivemotorAcu572 drivemotor_acu_572 = 5; // Feedback
+  optional MycarVcuAcuGeneral524 vcu_acu_general_524 = 6; // Feedback
+}
+
+message MycarAcuEps547 {
+  optional bool eps_enable = 1;
+  optional double eps_angle = 2; // deg
+}
+
+message MycarAcuDrivemotor563 {
+  optional double drive_motor_torque = 1;
+  optional double drive_motor_speed = 2; // km/h
+  enum ShiftType {
+    SHIFT_P = 0;
+    SHIFT_D = 1;
+    SHIFT_R = 2;
+    SHIFT_N = 3;
+  }
+  optional ShiftType drive_motor_shift = 3;
+  optional bool drive_motor_mode = 4; // 0: Speed, 1: Torque
+  optional bool drive_motor_enable = 5;
+}
+
+message MycarEpsAcu556 {
+  optional int32 eps_error = 1;
+  optional bool eps_enable = 2;
+  optional double eps_angle = 3; // deg
+}
+
+message MycarDrivemotorAcu572 {
+  optional double drive_motor_torque = 1;
+  optional double drive_motor_speed = 2; // km/h
+  enum ShiftType {
+    SHIFT_P = 0;
+    SHIFT_D = 1;
+    SHIFT_R = 2;
+    SHIFT_N = 3;
+  }
+  optional ShiftType drive_motor_shift = 3;
+  optional bool drive_motor_reply = 4;
+  optional bool drive_motor_mode = 5;
+  optional bool drive_motor_lock = 6;
+  optional bool drive_motor_enable = 7;
+  optional bool drive_motor_stop = 8;
+}
+
+message MycarVcuAcuGeneral524 {
+  optional bool acu_error = 1;
+  optional bool acu_remote_control = 2;
+  optional bool acu_receive_info = 3;
+}

@@ -40,6 +40,7 @@ apollo_component(
         ":apollo_control_lib",
         "//modules/control/control_component/controller_task_base:control_task_agent",
         "//modules/control/control_component/controller_task_base/common:dependency_injector",
+        "//modules/control/controllers/pure_pursuit_plugin:libpure_pursuit_controller.so",
     ],
 )
 
