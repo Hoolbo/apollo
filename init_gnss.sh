@@ -337,7 +337,7 @@ configure_device() {
     local CMD_ARM2="\$cmd,set,leverarm,point,${POINT_ARM_X},${POINT_ARM_Y},${POINT_ARM_Z}*ff"
     
     # Navigation mode commands
-    local CMD_NAV1='$cmd,set,navmode,FineAlign,off*ff'
+    local CMD_NAV1='$cmd,set,navmode,finealign,off*ff'
     local CMD_NAV2='$cmd,set,navmode,coarsealign,off*ff'
     local CMD_NAV3='$cmd,set,navmode,dynamicalign,on*ff'
     local CMD_NAV4='$cmd,set,navmode,gnss,double*ff'

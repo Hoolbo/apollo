@@ -1,0 +1,25 @@
+vehicle_param {
+  brand: MYCAR
+  vehicle_id {
+      other_unique_id: "mycar"
+  }
+  front_edge_to_center: 0.5
+  back_edge_to_center: 0.5
+  left_edge_to_center: 0.35
+  right_edge_to_center: 0.35
+
+  length: 1.0
+  width: 0.7
+  height: 0.5
+  min_turn_radius: 1.786
+  max_acceleration: 1.0
+  max_deceleration: -2.0
+  max_steer_angle: 2.0944
+  max_steer_angle_rate: 1.745
+  steer_ratio: 6.0
+  wheel_base: 0.65
+  wheel_rolling_radius: 0.15
+  max_abs_speed_when_stopped: 0.1
+  brake_deadzone: 0.0
+  throttle_deadzone: 0.0
+}

@@ -137,19 +137,16 @@ DEFINE_string(dynamic_model_library_path,
               "/.apollo/resources/dynamic_models/library/",
               "Dynamic Model libs placement");
 
-DEFINE_string(dynamic_model_package_library_path,
-              "modules/dynamic_model/",
+DEFINE_string(dynamic_model_package_library_path, "modules/dynamic_model/",
               "Dynamic Model package lib path");
 
-DEFINE_string(apollo_package_meta_info_path_prefix,
-              "share/packages/",
+DEFINE_string(apollo_package_meta_info_path_prefix, "share/packages/",
               "apollo package meta info path prefix");
 
 DEFINE_string(sim_obstacle_stop_command, "pkill -9 -f \"sim_obstacle\" ",
               "Sim obstacle stop command");
 
-DEFINE_string(sim_obstacle_path,
-              "bin/sim_obstacle",
+DEFINE_string(sim_obstacle_path, "bin/sim_obstacle",
               "sim obstacle binary placement.");
 
 DEFINE_string(gflag_command_arg,
@@ -184,8 +181,7 @@ DEFINE_string(valet_parking_command_topic,
 
 DEFINE_string(action_command_topic, "/apollo/external_command/action",
               "Action command topic name.");
-DEFINE_string(data_handler_config_path, "",
-              "Data handler config path.");
+DEFINE_string(data_handler_config_path, "", "Data handler config path.");
 
 DEFINE_string(data_recorder_command_keyword, "cyber_recorder record",
               "Data recorder command keyword.");
@@ -193,8 +189,7 @@ DEFINE_string(data_recorder_command_keyword, "cyber_recorder record",
 DEFINE_string(data_record_default_name, "default_record_name",
               "Data record default name");
 
-DEFINE_string(dv_hmi_modes_config_path,
-              "modules/dreamview/conf/hmi_modes",
+DEFINE_string(dv_hmi_modes_config_path, "modules/dreamview/conf/hmi_modes",
               "Dreamview HMI modes config path.");
 DEFINE_string(dv_plus_hmi_modes_config_path,
               "modules/dreamview_plus/conf/hmi_modes",
@@ -218,7 +213,7 @@ DEFINE_string(cyber_channels_key, "apollo.dreamview.Cyber",
 DEFINE_string(vehicle_data_config_filename,
               "modules/dreamview/conf/vehicle_data.pb.txt",
               "Vehicle data config file.");
-            
+
 DEFINE_double(status_publish_interval, 5, "HMI Status publish interval.");
 
 DEFINE_string(current_mode_db_key, "/apollo/hmi/status:current_mode",
@@ -230,8 +225,7 @@ DEFINE_string(default_hmi_mode, "Mkz Standard Debug",
 DEFINE_string(default_rtk_record_file, "data/log/garage.csv",
               "Default rtk record file.");
 
-DEFINE_string(default_rtk_record_path, "data/log/",
-              "Default rtk record path.");
+DEFINE_string(default_rtk_record_path, "data/log/", "Default rtk record path.");
 
 DEFINE_bool(dv_cpu_profile, false, "enable cpu profile");
 
