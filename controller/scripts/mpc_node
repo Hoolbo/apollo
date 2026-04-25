@@ -1,0 +1,3 @@
+#!/usr/bin/env python3
+from controller.mpc_node import main
+main()

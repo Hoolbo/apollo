@@ -1,0 +1,7 @@
+<cyber>
+    <module>
+        <name>mpc_controller</name>
+        <dag_conf>modules/control/mpc_controller/dag/mpc_controller.dag</dag_conf>
+        <process_name>mpc_controller</process_name>
+    </module>
+</cyber>

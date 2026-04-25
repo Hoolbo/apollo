@@ -1,0 +1,9 @@
+module_config {
+    module_library: "modules/control/mpc_controller/libmpc_controller_component.so"
+    components {
+        class_name: "MpcControllerComponent"
+        config {
+            name: "mpc_controller"
+        }
+    }
+}

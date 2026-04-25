@@ -1,0 +1,7 @@
+<cyber>
+    <module>
+        <name>cilqr_planner</name>
+        <dag_conf>modules/planning/cilqr_planner/dag/cilqr_planner.dag</dag_conf>
+        <process_name>cilqr_planner</process_name>
+    </module>
+</cyber>

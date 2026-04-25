@@ -1,0 +1,19 @@
+--- modules/planning/cilqr_planner/cilqr_lib/src/articulated_hybrid_astar.cpp
++++ modules/planning/cilqr_planner/cilqr_lib/src/articulated_hybrid_astar.cpp
+@@ -155,7 +155,7 @@
+     //   0,1 : rectangle edge normals (2 unique axes for a rectangle)
+     //   2   : segment perpendicular normal
+-    std::array<Eigen::Vector2f, 3> axes;
++    std::array<Eigen::Vector2f, 4> axes;
+     int n_axes = 0;
+ 
+     for (int i = 0; i < 2; ++i) {
+         Eigen::Vector2f edge = poly.row((i+1)%4) - poly.row(i);
+@@ -168,6 +168,8 @@
+         if (len > 1e-6f) {
+             Eigen::Vector2f normal(-seg_edge.y(), seg_edge.x());
+             axes[n_axes++] = normal / len;
++            Eigen::Vector2f parallel(seg_edge.x(), seg_edge.y());
++            axes[n_axes++] = parallel / len;
+         }
+     }

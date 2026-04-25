@@ -1,0 +1,45 @@
+# LPV-MPC Controller Parameters
+# Node name: mpc_controller  ->  must use ros__parameters
+mpc_controller:
+  ros__parameters:
+    # -- Prediction and Control Horizons --
+    Np: 20            # Prediction horizon (50 × 0.05s = 2.5s lookahead, 7.5m at 3m/s)
+    Nc: 20            # Control horizon
+    dt: 0.05          # Sampling period (s) -> 20Hz control loop
+
+    # -- Vehicle Geometry (from SDF model, scaled) --
+    Lf: 0.45         # Distance from front body center to articulation point (m)
+    Lr: 0.45         # Distance from rear body center to articulation point (m)
+    B: 0.493         # Track separation (wheel_separation from SDF) (m)
+    wheel_radius: 0.09047  # Effective wheel radius (m)
+
+    # -- State Weighting Matrix Q (diag) --
+    # Penalise: [x_err, y_err, theta_err, gamma_err]
+    # 提高 gamma 权重，让 MPC 更渴望纠正铰接角误差
+    Q: [4.0, 4.0, 15.0, 120.0]
+
+    # -- Control Increment Weighting Matrix R (diag) --
+    # R[0]=2.0: 惩罚高速增量，迭使 MPC 主动减速
+    R: [44.4, 0.11]
+
+    # -- Control Tracking Weighting Matrix S (diag) --
+    # S[1]=0.0: 移除参考 omega_gamma 跟踪，让 gamma 误差纳正优先（不再被参考值披手）
+    S: [0.5, 0.0]
+
+    # -- Physical Constraints (from SDF model) --
+    v_max: 10.0           # Max linear velocity (m/s) — 匹配车辆物理能力
+    v_min: -1.0          # Min linear velocity (m/s)
+    omega_gamma_max: 5.0 # Max articulation angular rate (rad/s) — aligned with CILQR gamma_dot_max
+    gamma_max: 0.6       # Max articulation angle (rad) - SDF joint limit: ±0.6
+    gamma_min: -0.6      # Min articulation angle (rad) - SDF joint limit: ±0.6
+
+    # -- Control Increment Constraints --
+    # 缩放公式: d_max = physical_accel × dt
+    # domega_gamma: SDF velocity=3.0 rad/s，设关节角加速度上限≈40 rad/s²
+    #   → 40 × 0.025 = 1.0 rad/s per step（让弯道响应更快）
+    # dv: 加速度上限约10 m/s² → 10 × 0.025 = 0.25 m/s per step（保持不变）
+    dv_max: 0.15             # Max velocity increment per step (m/s) — 3.0m/s² × dt=0.05s
+    domega_gamma_max: 3.0    # Max articulation rate increment per step (rad/s) — Bryson: 1/3²=0.11
+
+    # -- Turning Mode Threshold --
+    v_threshold: 0.0  # Speed threshold for pure-articulation vs compound turning (m/s)

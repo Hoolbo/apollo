@@ -1,0 +1,25 @@
+syntax = "proto2";
+
+package apollo.planning.cilqr;
+
+message CilqrPlannerConf {
+  // Directory containing CILQR JSON config files (main.json, ilqr.json, etc.)
+  optional string config_dir = 1;
+  // Path to bitmap map file for Hybrid A* planning
+  optional string map_file = 2;
+  // Planning timer frequency in Hz
+  optional double publish_rate = 3 [default = 10.0];
+  // Override desire_speed from JSON config (-1 = use JSON value)
+  optional double desire_speed = 4 [default = -1.0];
+  // Override horizon from JSON config (-1 = use JSON value)
+  optional int32 horizon = 5 [default = -1];
+
+  // Channel configuration
+  optional string localization_topic = 10 [default = "/apollo/localization/pose"];
+  optional string planning_command_topic = 11 [default = "/apollo/planning/command"];
+  optional string prediction_topic = 12 [default = "/apollo/prediction"];
+  optional string chassis_topic = 13 [default = "/apollo/canbus/chassis"];
+  optional string planning_trajectory_topic = 14 [default = "/apollo/planning"];
+  // Articulation angle input channel (from INS or custom component)
+  optional string articulation_topic = 15 [default = "/apollo/vehicle/articulation"];
+}

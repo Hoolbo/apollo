@@ -1,0 +1,15 @@
+<package>
+  <name>mpc-controller</name>
+  <version>1.0.0</version>
+  <description>LPV-MPC controller for articulated Ackermann vehicle</description>
+  <type>module</type>
+  <src_path>//modules/control/mpc_controller</src_path>
+  <builder>bazel</builder>
+
+  <depend type="binary" repo="core">cyber</depend>
+  <depend type="binary" repo="core">common-msgs</depend>
+
+  <install>
+    <target name="//modules/control/mpc_controller:install"/>
+  </install>
+</package>

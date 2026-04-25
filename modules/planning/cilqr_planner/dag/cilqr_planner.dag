@@ -1,0 +1,11 @@
+module_config {
+    module_library: "modules/planning/cilqr_planner/libcilqr_planner_component.so"
+    components {
+        class_name: "CilqrPlannerComponent"
+        config {
+            name: "cilqr_planner"
+            config_file_path: "modules/planning/cilqr_planner/conf/cilqr_planner_config.pb.txt"
+            flag_file_path: "modules/planning/cilqr_planner/conf/cilqr_planner.conf"
+        }
+    }
+}

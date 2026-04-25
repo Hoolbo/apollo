@@ -1,0 +1,12 @@
+config_dir: "modules/planning/cilqr_planner/conf/cilqr_json"
+map_file: "modules/planning/cilqr_planner/data/atv_terrain_global_map.json"
+publish_rate: 10.0
+desire_speed: -1.0
+horizon: -1
+
+localization_topic: "/apollo/localization/pose"
+planning_command_topic: "/apollo/planning/command"
+prediction_topic: "/apollo/prediction"
+chassis_topic: "/apollo/canbus/chassis"
+planning_trajectory_topic: "/apollo/planning"
+articulation_topic: "/apollo/vehicle/articulation"

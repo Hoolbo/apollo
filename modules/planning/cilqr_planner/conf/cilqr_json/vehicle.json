@@ -1,0 +1,15 @@
+{
+    "lf": 0.77,
+    "lr": 0.77,
+    "width": 0.726,
+    "box_length": 1.10,
+    "ego_rad": 0.66,
+    "gamma_max": 0.6,
+    "gamma_min": -0.6,
+    "gamma_dot_max": 0.8,
+    "gamma_dot_min": -0.8,
+    "acc_max": 3.0,
+    "acc_min": -3.0,
+    "v_max": 10.0,
+    "v_min": -1.0
+}
