@@ -188,6 +188,10 @@ def main():
     parser.add_argument('--output', default=None, help='Output JSON file path')
     parser.add_argument('--use_local_coords', action='store_true', default=True,
                         help='Convert UTM coords to local coords relative to start point')
+    parser.add_argument('--custom_origin_x', type=float, default=None,
+                        help='Custom origin X in old local coords (this point becomes new X=0)')
+    parser.add_argument('--custom_origin_y', type=float, default=None,
+                        help='Custom origin Y in old local coords (this point becomes new Y=0)')
     parser.add_argument('--clip_xmin', type=float, default=None, help='Clip area min X (local coords)')
     parser.add_argument('--clip_xmax', type=float, default=None, help='Clip area max X (local coords)')
     parser.add_argument('--clip_ymin', type=float, default=None, help='Clip area min Y (local coords)')
@@ -249,6 +253,16 @@ def main():
     else:
         offset_x = 0
         offset_y = 0
+    
+    # 如果指定了自定义原点，将其叠加到偏移上
+    # custom_origin_x/y 是在旧局部坐标系下的坐标，表示希望这个点成为新的 (0,0)
+    if args.custom_origin_x is not None or args.custom_origin_y is not None:
+        co_x = args.custom_origin_x if args.custom_origin_x is not None else 0.0
+        co_y = args.custom_origin_y if args.custom_origin_y is not None else 0.0
+        offset_x += co_x
+        offset_y += co_y
+        print(f"自定义原点: 旧坐标 ({co_x:.2f}, {co_y:.2f}) -> 新坐标 (0, 0)")
+        print(f"总偏移量: ({offset_x:.2f}, {offset_y:.2f})")
     
     # 计算局部坐标范围
     local_min_x = all_points[:, 0].min() - offset_x - args.margin

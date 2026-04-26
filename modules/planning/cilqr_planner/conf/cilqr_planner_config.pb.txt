@@ -1,5 +1,5 @@
 config_dir: "modules/planning/cilqr_planner/conf/cilqr_json"
-map_file: "modules/planning/cilqr_planner/data/atv_terrain_global_map.json"
+map_file: "modules/planning/cilqr_planner/data/grid_map_201_0320_0.2m.json"
 publish_rate: 10.0
 desire_speed: -1.0
 horizon: -1

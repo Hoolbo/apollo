@@ -35,8 +35,8 @@ INIT_Y = 0.0
 INIT_THETA_FRONT = 0.0
 INIT_THETA_REAR = 0.0
 
-# ── 目标点 ──
-GOAL_X = 100.0
+# ── 目标点（圆环圆心为原点）──
+GOAL_X = 60.0
 GOAL_Y = 0.0
 GOAL_THETA = -1.57
 

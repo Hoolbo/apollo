@@ -24,16 +24,16 @@ from modules.common_msgs.localization_msgs.localization_pb2 import LocalizationE
 from modules.common_msgs.planning_msgs.planning_command_pb2 import PlanningCommand
 
 # ── 配置参数 ──
-# 起始位置（在你的地图范围内）
+# 起始位置 — 相对坐标系（原点=圆环圆心, X∈[-419, 253], Y∈[-372, 414]）
 START_X = 0.0
 START_Y = 0.0
-START_THETA = 0  # 朝向 (rad)
-START_GAMMA = 0.0   # 铰接角
+START_THETA = 0.0    # 朝向 (rad), 0=朝东
+START_GAMMA = 0.0    # 铰接角
 
-# 目标位置
-GOAL_X = 200.0
-GOAL_Y = -50.0
-GOAL_THETA = 0
+# 目标位置 — 相对坐标系（圆环圆心为原点）
+GOAL_X = 60.0
+GOAL_Y = 0.0
+GOAL_THETA = 0.0
 
 # Channel 名（和 cilqr_planner_config.pb.txt 一致）
 LOC_TOPIC = "/apollo/localization/pose"

@@ -8,11 +8,11 @@
 
 // Configuration structure to hold runtime parameters
 struct RunConfig {
-    double start_x = 70;
-    double start_y = 60;
+    double start_x = -76.74;
+    double start_y = -216.33;
     double start_theta = 1.2;
-    double goal_x = 180;
-    double goal_y = 127;
+    double goal_x = 33.26;
+    double goal_y = -149.33;
     double goal_theta = 1.8;
     double ITER = 280;
     std::string solver_type = "cilqr";
