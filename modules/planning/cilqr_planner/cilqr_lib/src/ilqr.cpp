@@ -1007,6 +1007,14 @@ void CILQRSolver::compute_cost_derivatives(const Solution &solution) {
       this->lu[i] += lu_speed_rate;
       this->luu[i] += luu_speed_rate;
     }
+
+    // 初始速度锚定：惩罚 U[0] 偏离实际车速，防止冷启动突变
+    if (initial_velocity_ > 0.01) {
+      double v_diff_init = U[0][0] - initial_velocity_;
+      double w_init = arg.v_rate_weight * 3.0;  // 较大权重锚定初始速度
+      this->lu[0](0) += 2.0 * w_init * v_diff_init;
+      this->luu[0](0, 0) += 2.0 * w_init;
+    }
   }
 }
 
@@ -1346,8 +1354,8 @@ Control CILQRSolver::pure_pursuit(const State &X_cur) {
   // 其中 len = lr + lf * cos(gamma)
 
   double current_gamma = X_cur[3]; // 当前铰接角
-  // double v = arg.desire_speed;     // 冷启动使用期望速度，避免初始代价过大
-  double v = 1; // 冷启动使用固定速度1
+  // 使用外部传入的实际车速，防止冷启动时速度突变
+  double v = (initial_velocity_ > 0.1) ? initial_velocity_ : 1.0;
   double lf = ego.get_model().lf;
   double lr = ego.get_model().lr;
 

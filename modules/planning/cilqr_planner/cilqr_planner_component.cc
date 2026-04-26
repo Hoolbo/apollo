@@ -134,10 +134,7 @@ bool CilqrPlannerComponent::Init() {
         cur_state_[0] = msg->pose().position().x();
         cur_state_[1] = msg->pose().position().y();
         cur_state_[2] = msg->pose().heading();
-        // gamma (State[3]) updated separately via chassis or custom channel
-        cur_velocity_ = std::hypot(
-            msg->pose().linear_velocity().x(),
-            msg->pose().linear_velocity().y());
+        // gamma (State[3]) updated by rear localization reader
       });
 
   planning_command_reader_ = node_->CreateReader<planning::PlanningCommand>(
@@ -207,10 +204,24 @@ bool CilqrPlannerComponent::Init() {
   chassis_reader_ = node_->CreateReader<Chassis>(
       conf_.chassis_topic(),
       [this](const std::shared_ptr<Chassis>& msg) {
-        // TODO: Extract articulation angle gamma from chassis or
-        // a separate channel when INS dual-heading is implemented.
-        // For now, gamma stays at its current value.
-        (void)msg;
+        std::lock_guard<std::mutex> lk(state_mutex_);
+        // 从电机转速读取车速，比 GNSS 速度更准确（尤其低速）
+        cur_velocity_ = msg->speed_mps();
+      });
+
+  // 后车定位：读取后车 IMU 航向，计算铰接角 gamma
+  rear_localization_reader_ = node_->CreateReader<LocalizationEstimate>(
+      "/apollo/localization/pose_rear",
+      [this](const std::shared_ptr<LocalizationEstimate>& msg) {
+        std::lock_guard<std::mutex> lk(state_mutex_);
+        rear_theta_ = msg->pose().heading();
+        rear_odom_received_ = true;
+        // gamma = 前车航向 - 后车航向，归一化到 [-π, π]
+        double gamma = cur_state_[2] - rear_theta_;
+        // 归一化
+        while (gamma > M_PI) gamma -= 2 * M_PI;
+        while (gamma < -M_PI) gamma += 2 * M_PI;
+        cur_state_[3] = gamma;
       });
 
   // ── Create writers ──
@@ -442,6 +453,7 @@ void CilqrPlannerComponent::PlanAndPublish() {
   Solution solution;
   try {
     cilqr_solver_->set_ros_time(cyber::Time::Now().ToSecond());
+    cilqr_solver_->set_initial_velocity(cur_velocity_);
     solution = cilqr_solver_->solve(plan_init_state, obs_copy);
   } catch (const std::exception& e) {
     AWARN << "CILQR exception: " << e.what();

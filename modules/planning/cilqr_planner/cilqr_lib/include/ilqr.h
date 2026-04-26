@@ -299,6 +299,7 @@ private:
   bool enable_logging = true;
   int plan_cycle_counter = 0; // 规划周期计数，每次 solve() 递增
   double ros_time_s_ = 0.0;   // 外部传入的 ROS 时间戳 (仿真时间)
+  double initial_velocity_ = 0.0; // 外部传入的当前实际车速 (m/s)
 
   std::vector<MatrixXd> k;
   std::vector<MatrixXd> K;
@@ -373,6 +374,8 @@ public:
                  const std::vector<ObstacleData> &obs_list);
   // 设置 ROS 仿真时间戳（planner_node 每次 solve 前调用）
   void set_ros_time(double t) { ros_time_s_ = t; }
+  // 设置当前实际车速，用于冷启动时约束初始速度
+  void set_initial_velocity(double v) { initial_velocity_ = v; }
   // 返回当前帧 ego 使用的局部参考路径点（供外部发布可视化）
   std::vector<Point> get_local_plan_points() {
     return ego.get_local_plan().get_points();

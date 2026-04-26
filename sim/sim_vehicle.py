@@ -13,6 +13,7 @@
 
 import math
 import time
+import argparse
 import re
 import numpy as np
 
@@ -29,11 +30,10 @@ from modules.common_msgs.chassis_msgs.chassis_pb2 import Chassis
 SIM_DT = 0.02        # 仿真步长 50Hz
 LOC_PUBLISH_HZ = 50  # 定位发布频率
 
-# ── 初始状态 ──
+# ── 初始状态（默认值，可通过命令行覆盖）──
 INIT_X = -160.0
 INIT_Y = -11.0
-INIT_THETA_FRONT = 0.1
-INIT_THETA_REAR = 0.1
+INIT_THETA = 0.1
 
 # ── 目标点（圆环圆心为原点）──
 GOAL_X = 100.0
@@ -50,12 +50,12 @@ LR = 0.77            # 后车中心到铰接点
 class ArticulatedVehicleSim:
     """双 Ackermann 铰接车运动学仿真"""
 
-    def __init__(self):
+    def __init__(self, x=None, y=None, theta=None):
         # 状态: [x_front, y_front, theta_front, theta_rear]
-        self.x = INIT_X
-        self.y = INIT_Y
-        self.theta_front = INIT_THETA_FRONT
-        self.theta_rear = INIT_THETA_REAR
+        self.x = x if x is not None else INIT_X
+        self.y = y if y is not None else INIT_Y
+        self.theta_front = theta if theta is not None else INIT_THETA
+        self.theta_rear = theta if theta is not None else INIT_THETA
 
         # 控制输入（从 ControlCommand 读取）
         self.v_front = 0.0
@@ -121,10 +121,20 @@ def parse_debug_string(msg_str):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--x', type=float, default=None, help='Start X')
+    parser.add_argument('--y', type=float, default=None, help='Start Y')
+    parser.add_argument('--theta', type=float, default=None, help='Start heading (rad)')
+    args = parser.parse_args()
+
+    sx = args.x if args.x is not None else INIT_X
+    sy = args.y if args.y is not None else INIT_Y
+    st = args.theta if args.theta is not None else INIT_THETA
+
     print("=" * 60)
     print("  铰接车运动学仿真器")
     print("=" * 60)
-    print(f"  初始: ({INIT_X}, {INIT_Y}), θ={math.degrees(INIT_THETA_FRONT):.1f}°")
+    print(f"  初始: ({sx}, {sy}), θ={math.degrees(st):.1f}°")
     print(f"  目标: ({GOAL_X}, {GOAL_Y})")
     print(f"  仿真频率: {1/SIM_DT:.0f} Hz")
     print("=" * 60)
@@ -135,16 +145,21 @@ def main():
     # Publishers
     loc_writer = node.create_writer(
         '/apollo/localization/pose', LocalizationEstimate)
+    rear_loc_writer = node.create_writer(
+        '/apollo/localization/pose_rear', LocalizationEstimate)
     cmd_writer = node.create_writer(
         '/apollo/planning/command', PlanningCommand)
     chassis_writer = node.create_writer(
         '/apollo/canbus/chassis', Chassis)
 
     # Vehicle sim
-    vehicle = ArticulatedVehicleSim()
+    vehicle = ArticulatedVehicleSim(x=sx, y=sy, theta=st)
 
     # Subscribe to control commands
+    last_ctrl_time = [time.time()]
+
     def on_control(msg):
+        last_ctrl_time[0] = time.time()
         # 优先从 debug string 解析完整 4 路指令
         debug_str = msg.header.status.msg if msg.header.HasField('status') else ''
         if debug_str and 'v_front' in debug_str:
@@ -162,25 +177,17 @@ def main():
 
     time.sleep(0.5)
 
-    # 发送目标点
-    print("\n[1/2] 发送目标点...")
-    goal_msg = PlanningCommand()
-    goal_msg.header.timestamp_sec = cyber_time.Time.now().to_sec()
-    goal_msg.header.module_name = 'sim_vehicle'
-    wp = goal_msg.lane_follow_command.routing_request.waypoint.add()
-    wp.pose.x = GOAL_X
-    wp.pose.y = GOAL_Y
-    wp.heading = GOAL_THETA
-    cmd_writer.write(goal_msg)
-    print(f"  ✓ 目标点: ({GOAL_X}, {GOAL_Y})")
-
-    # 主循环
-    print(f"\n[2/2] 仿真运行中...")
+    # 主循环（目标点由 Web UI 设置）
+    print("\n  仿真运行中... 请在 Web 页面设置目标点")
     print("  按 Ctrl+C 停止\n")
 
     tick = 0
     try:
         while not cyber.is_shutdown():
+            # 控制超时刹车（0.5 秒无指令则停车）
+            if time.time() - last_ctrl_time[0] > 0.5:
+                vehicle.set_control(0.0, 0.0, 0.0, 0.0)
+
             # 运动学更新
             vehicle.step(SIM_DT)
 
@@ -206,12 +213,25 @@ def main():
 
             loc_writer.write(loc)
 
-            # 发布铰接角 γ（用 Chassis.steering_percentage 字段承载）
+            # 发布后车定位（双 IMU 架构：前后车各一个 localization topic）
+            rear_loc = LocalizationEstimate()
+            rear_loc.header.timestamp_sec = cyber_time.Time.now().to_sec()
+            rear_loc.header.module_name = 'sim_vehicle_rear'
+            # 后车位置（铰接点向后偏移 LR）
+            rear_loc.pose.position.x = vehicle.x - LF * math.cos(vehicle.theta_front) - LR * math.cos(vehicle.theta_rear)
+            rear_loc.pose.position.y = vehicle.y - LF * math.sin(vehicle.theta_front) - LR * math.sin(vehicle.theta_rear)
+            rear_loc.pose.position.z = 0.0
+            rear_loc.pose.heading = vehicle.theta_rear
+            half_r = vehicle.theta_rear / 2.0
+            rear_loc.pose.orientation.qw = math.cos(half_r)
+            rear_loc.pose.orientation.qz = math.sin(half_r)
+            rear_loc_writer.write(rear_loc)
+
+            # 发布 Chassis（仅速度，gamma 由双 localization 计算）
             chassis_msg = Chassis()
             chassis_msg.header.timestamp_sec = cyber_time.Time.now().to_sec()
             chassis_msg.header.module_name = 'sim_vehicle'
-            chassis_msg.steering_percentage = math.degrees(vehicle.gamma)  # deg
-            chassis_msg.speed_mps = vehicle.v_front
+            chassis_msg.speed_mps = abs(vehicle.v_front)
             chassis_writer.write(chassis_msg)
 
             tick += 1

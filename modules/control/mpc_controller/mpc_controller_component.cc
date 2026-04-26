@@ -428,6 +428,12 @@ bool MpcControllerComponent::Init() {
       "/apollo/canbus/chassis",
       [this](const auto& msg) { OnChassis(msg); });
 
+  // 后车定位：读取后车 IMU 航向，计算铰接角 gamma
+  rear_localization_reader_ =
+      node_->CreateReader<localization::LocalizationEstimate>(
+          "/apollo/localization/pose_rear",
+          [this](const auto& msg) { OnRearLocalization(msg); });
+
   // ── Writer ──
   ctrl_writer_ = node_->CreateWriter<control::ControlCommand>(
       "/apollo/control");
@@ -484,8 +490,21 @@ void MpcControllerComponent::OnTrajectory(
 
 void MpcControllerComponent::OnChassis(
     const std::shared_ptr<canbus::Chassis>& msg) {
+  // chassis 不再用于读取 gamma，gamma 由双 IMU 航向差计算
+  // 可用于读取车速等其他信息（当前未使用）
+  (void)msg;
+}
+
+void MpcControllerComponent::OnRearLocalization(
+    const std::shared_ptr<localization::LocalizationEstimate>& msg) {
   std::lock_guard<std::mutex> lk(state_mutex_);
-  gamma_ = msg->steering_percentage() * M_PI / 180.0;  // deg → rad
+  rear_theta_ = msg->pose().heading();
+  rear_odom_received_ = true;
+  // gamma = 前车航向 - 后车航向，归一化到 [-π, π]
+  double gamma = current_state_[2] - rear_theta_;
+  while (gamma > M_PI) gamma -= 2 * M_PI;
+  while (gamma < -M_PI) gamma += 2 * M_PI;
+  gamma_ = gamma;
   current_state_[3] = gamma_;
 }
 

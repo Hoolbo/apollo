@@ -24,7 +24,7 @@
     "_comment_heuristic_weight": "启发式权重。f = g + heuristic_weight × h。>1.0时为加权A*(Weighted A*)，搜索更快但路径可能非最优。1.0→标准A*。推荐1.2~2.0。",
     "heuristic_weight": 2.0,
     "_comment_max_iterations": "最大搜索迭代次数。超过此值则搜索失败。100000对大多数场景足够。",
-    "max_iterations": 500000,
+    "max_iterations": 1000000,
     "_comment_goal_tolerance_xy": "目标位置容差 [m]。当车辆与目标的欧氏距离小于此值时视为到达。越小→终点越精确但可能找不到路径。",
     "goal_tolerance_xy": 1.0,
     "_comment_goal_tolerance_heading": "目标航向容差 [rad]。≈15°。当车辆朝向与目标朝向差小于此值时视为到达。",

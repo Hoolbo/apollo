@@ -84,6 +84,8 @@ class CilqrPlannerComponent : public apollo::cyber::Component<> {
 
   double publish_rate_ = 10.0;
   double cur_velocity_ = 0.0;
+  double rear_theta_ = 0.0;
+  bool rear_odom_received_ = false;
 
   // ── Logging ──
   std::string log_path_;
@@ -98,6 +100,8 @@ class CilqrPlannerComponent : public apollo::cyber::Component<> {
   std::shared_ptr<cyber::Reader<prediction::PredictionObstacles>>
       prediction_reader_;
   std::shared_ptr<cyber::Reader<canbus::Chassis>> chassis_reader_;
+  std::shared_ptr<cyber::Reader<localization::LocalizationEstimate>>
+      rear_localization_reader_;
   std::shared_ptr<cyber::Writer<ADCTrajectory>> planning_writer_;
   std::shared_ptr<cyber::Writer<routing::RoutingResponse>> routing_writer_;
   std::shared_ptr<cyber::Writer<ADCTrajectory>> global_path_writer_;

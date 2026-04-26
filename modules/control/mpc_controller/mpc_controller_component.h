@@ -118,6 +118,8 @@ class MpcControllerComponent : public cyber::Component<> {
       const std::shared_ptr<planning::ADCTrajectory>& msg);
   void OnChassis(
       const std::shared_ptr<canbus::Chassis>& msg);
+  void OnRearLocalization(
+      const std::shared_ptr<localization::LocalizationEstimate>& msg);
 
   // Build reference arrays from latest trajectory
   bool BuildRefArrays(Eigen::MatrixXd& ref_states,
@@ -139,7 +141,9 @@ class MpcControllerComponent : public cyber::Component<> {
   std::mutex state_mutex_;
   Eigen::Vector4d current_state_ = Eigen::Vector4d::Zero();
   double gamma_ = 0.0;
+  double rear_theta_ = 0.0;
   bool odom_received_ = false;
+  bool rear_odom_received_ = false;
 
   // Trajectory
   std::mutex traj_mutex_;
@@ -151,6 +155,8 @@ class MpcControllerComponent : public cyber::Component<> {
       localization_reader_;
   std::shared_ptr<cyber::Reader<planning::ADCTrajectory>> trajectory_reader_;
   std::shared_ptr<cyber::Reader<canbus::Chassis>> chassis_reader_;
+  std::shared_ptr<cyber::Reader<localization::LocalizationEstimate>>
+      rear_localization_reader_;
   std::shared_ptr<cyber::Writer<control::ControlCommand>> ctrl_writer_;
 
   // Timer

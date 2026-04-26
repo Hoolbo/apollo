@@ -1,0 +1,134 @@
+syntax = "proto2";
+
+package apollo.canbus;
+
+import "modules/common_msgs/basic_msgs/header.proto";
+
+// Top-level message for the articulated tracked vehicle.
+// Combines front vehicle (FCBee2) and rear vehicle (Hunter SE) CAN data.
+message Articulated {
+  optional apollo.common.Header header = 1;
+
+  // ---- Front vehicle (FCBee2) control commands ----
+  optional ArticulatedFrontAcuEps547 front_acu_eps_547 = 2;
+  optional ArticulatedFrontAcuDrivemotor563 front_acu_drivemotor_563 = 3;
+
+  // ---- Front vehicle (FCBee2) feedback ----
+  optional ArticulatedFrontEpsAcu556 front_eps_acu_556 = 4;
+  optional ArticulatedFrontDrivemotorAcu572 front_drivemotor_acu_572 = 5;
+  optional ArticulatedFrontVcuAcuGeneral524 front_vcu_acu_general_524 = 6;
+
+  // ---- Rear vehicle (Hunter SE) control commands ----
+  optional ArticulatedRearMotionCommand273 rear_motion_command_273 = 7;
+  optional ArticulatedRearControlModeSet1057 rear_control_mode_set_1057 = 8;
+
+  // ---- Rear vehicle (Hunter SE) feedback ----
+  optional ArticulatedRearMotionFeedback545 rear_motion_feedback_545 = 9;
+  optional ArticulatedRearChassisStatus529 rear_chassis_status_529 = 10;
+}
+
+// =============================================================================
+// Front vehicle messages (FCBee2 protocol, Intel byte order)
+// =============================================================================
+
+// ACU -> Front EPS control command (0x223 / 547)
+message ArticulatedFrontAcuEps547 {
+  optional bool eps_enable = 1;
+  optional double eps_angle = 2;        // deg
+  optional double eps_angle_speed = 3;  // deg/s (unused in current spec)
+}
+
+// ACU -> Front drive motor control command (0x233 / 563)
+message ArticulatedFrontAcuDrivemotor563 {
+  optional double drive_motor_torque = 1;  // N.M
+  optional double drive_motor_speed = 2;   // km/h
+  enum ShiftType {
+    SHIFT_P = 0;
+    SHIFT_D = 1;
+    SHIFT_R = 2;
+    SHIFT_N = 3;
+  }
+  optional ShiftType drive_motor_shift = 3;
+  optional bool drive_motor_mode = 4;    // 0: Speed, 1: Torque
+  optional bool drive_motor_enable = 5;
+}
+
+// Front EPS -> ACU feedback (0x22C / 556)
+message ArticulatedFrontEpsAcu556 {
+  optional int32 eps_error = 1;
+  optional bool eps_enable = 2;
+  optional double eps_angle = 3;        // deg
+  optional double eps_angle_speed = 4;  // deg/s (unused in current spec)
+}
+
+// Front drive motor -> ACU feedback (0x23C / 572)
+message ArticulatedFrontDrivemotorAcu572 {
+  optional double drive_motor_torque = 1;  // N.m
+  optional double drive_motor_speed = 2;   // km/h
+  enum ShiftType {
+    SHIFT_P = 0;
+    SHIFT_D = 1;
+    SHIFT_R = 2;
+    SHIFT_N = 3;
+  }
+  optional ShiftType drive_motor_shift = 3;
+  optional bool drive_motor_reply = 4;
+  optional bool drive_motor_mode = 5;
+  optional bool drive_motor_lock = 6;
+  optional bool drive_motor_enable = 7;
+  optional bool drive_motor_stop = 8;
+}
+
+// Front VCU -> ACU general status (0x20C / 524)
+message ArticulatedFrontVcuAcuGeneral524 {
+  optional bool acu_error = 1;
+  optional bool acu_remote_control = 2;
+  optional bool acu_receive_info = 3;
+  optional bool acu_control_mode = 4;
+}
+
+// =============================================================================
+// Rear vehicle messages (Hunter SE protocol, Motorola byte order)
+// =============================================================================
+
+// ACU -> Rear motion command (0x111 / 273)
+message ArticulatedRearMotionCommand273 {
+  optional double target_speed = 1;        // m/s, factor=0.001, signed
+  optional double target_steer_angle = 2;  // rad, factor=0.001, signed
+}
+
+// ACU -> Rear control mode set (0x421 / 1057)
+message ArticulatedRearControlModeSet1057 {
+  enum ModeType {
+    STANDBY = 0;
+    CAN_CONTROL = 1;
+    TO_STANDBY = 2;
+  }
+  optional ModeType mode_set = 1;
+}
+
+// Rear motion feedback (0x221 / 545)
+message ArticulatedRearMotionFeedback545 {
+  optional double linear_speed = 1;     // m/s, factor=0.001, signed
+  optional double steering_angle = 2;   // rad, factor=0.001, signed
+}
+
+// Rear chassis status (0x211 / 529)
+message ArticulatedRearChassisStatus529 {
+  enum VehicleStateType {
+    NORMAL = 0;
+    EMERGENCY_STOP = 1;
+    SYSTEM_FAULT = 2;
+  }
+  enum ControlModeType {
+    MODE_STANDBY = 0;
+    MODE_CAN_CONTROL = 1;
+    MODE_REMOTE = 2;
+  }
+  optional VehicleStateType vehicle_state = 1;
+  optional ControlModeType control_mode = 2;
+  optional double battery_voltage = 3;  // V, factor=0.1
+  optional int32 fault_high = 4;
+  optional int32 fault_low = 5;
+  optional int32 message_count = 6;
+}

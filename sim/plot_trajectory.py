@@ -47,6 +47,7 @@ latest_traj_pts = []     # 最新 planning 轨迹点 [(x,y), ...]
 global_traj_pts = []     # 混合A* 规划出的全局路径 [(x,y), ...]
 vehicle_pos = None       # 当前位置 (x, y, theta)
 current_gamma = 0.0      # 当前铰接角 (rad)
+rear_theta = 0.0         # 后车航向角 (rad)
 plot_counter = 0
 map_data = None          # 加载的地图数据 dict
 vehicle_params = None    # 车辆几何参数
@@ -83,9 +84,19 @@ def on_global_trajectory(msg):
 
 
 def on_chassis(msg):
-    global current_gamma
-    # chassis steering_percentage 转化为弧度得到 gamma
-    current_gamma = msg.steering_percentage * math.pi / 180.0
+    pass  # chassis 仅用于 speed_mps，gamma 由双 localization 计算
+
+
+def on_rear_localization(msg):
+    global current_gamma, rear_theta
+    rear_theta = msg.pose.heading
+    if vehicle_pos is not None:
+        gamma = vehicle_pos[2] - rear_theta
+        while gamma > math.pi:
+            gamma -= 2 * math.pi
+        while gamma < -math.pi:
+            gamma += 2 * math.pi
+        current_gamma = gamma
 
 
 def load_vehicle_config():
@@ -403,6 +414,8 @@ def main():
                        ADCTrajectory, on_global_trajectory)
     node.create_reader('/apollo/canbus/chassis',
                        Chassis, on_chassis)
+    node.create_reader('/apollo/localization/pose_rear',
+                       LocalizationEstimate, on_rear_localization)
 
     # 加载车辆配置
     load_vehicle_config()

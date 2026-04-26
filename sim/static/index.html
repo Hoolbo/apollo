@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>铰接车实时可视化</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- 顶部工具栏 -->
+  <header id="toolbar">
+    <div class="toolbar-left">
+      <div class="logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="#00d2ff" stroke-width="2"/>
+          <circle cx="12" cy="12" r="4" fill="#00d2ff"/>
+          <line x1="12" y1="2" x2="12" y2="8" stroke="#00d2ff" stroke-width="2"/>
+        </svg>
+        <span>铰接车控制台</span>
+      </div>
+    </div>
+    <div class="toolbar-center">
+      <button class="module-btn" data-module="sim" onclick="toggleModule('sim')">
+        <span class="dot"></span> 仿真
+      </button>
+      <button class="module-btn" data-module="canbus" onclick="toggleModule('canbus')">
+        <span class="dot"></span> Canbus
+      </button>
+      <button class="module-btn" data-module="cilqr" onclick="toggleModule('cilqr')">
+        <span class="dot"></span> CILQR
+      </button>
+      <button class="module-btn" data-module="mpc" onclick="toggleModule('mpc')">
+        <span class="dot"></span> MPC
+      </button>
+      <div class="separator"></div>
+      <button id="btn-start" class="tool-btn" onclick="toggleStartMode()">
+        📍 设起点
+      </button>
+      <button id="btn-goal" class="tool-btn" onclick="toggleGoalMode()">
+        🎯 设目标点
+      </button>
+      <button class="tool-btn" onclick="resetView()">
+        🔄 重置视角
+      </button>
+      <button id="btn-follow" class="tool-btn active" onclick="toggleFollow()">
+        📍 跟随车辆
+      </button>
+    </div>
+    <div class="toolbar-right">
+      <span id="ws-status" class="ws-badge disconnected">● 断开</span>
+    </div>
+  </header>
+
+  <!-- 主内容 -->
+  <main>
+    <!-- Canvas 渲染区 -->
+    <canvas id="canvas"></canvas>
+
+    <!-- 右侧状态面板 -->
+    <aside id="sidebar">
+      <div class="panel">
+        <h3>车辆状态</h3>
+        <div class="stat-grid">
+          <div class="stat">
+            <label>X</label>
+            <span id="val-x">--</span>
+            <small>m</small>
+          </div>
+          <div class="stat">
+            <label>Y</label>
+            <span id="val-y">--</span>
+            <small>m</small>
+          </div>
+          <div class="stat">
+            <label>θ</label>
+            <span id="val-theta">--</span>
+            <small>°</small>
+          </div>
+          <div class="stat">
+            <label>γ</label>
+            <span id="val-gamma">--</span>
+            <small>°</small>
+          </div>
+          <div class="stat">
+            <label>速度</label>
+            <span id="val-speed">--</span>
+            <small>m/s</small>
+          </div>
+          <div class="stat">
+            <label>帧率</label>
+            <span id="val-fps">--</span>
+            <small>Hz</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>目标点</h3>
+        <div class="stat-grid">
+          <div class="stat">
+            <label>X</label>
+            <span id="val-goal-x">--</span>
+            <small>m</small>
+          </div>
+          <div class="stat">
+            <label>Y</label>
+            <span id="val-goal-y">--</span>
+            <small>m</small>
+          </div>
+          <div class="stat">
+            <label>距离</label>
+            <span id="val-dist">--</span>
+            <small>m</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>图例</h3>
+        <div class="legend">
+          <div class="legend-item"><span class="swatch" style="background:#ffcc00"></span> 车体</div>
+          <div class="legend-item"><span class="swatch" style="background:rgba(255,255,255,0.6)"></span> 行驶轨迹</div>
+          <div class="legend-item"><span class="swatch" style="background:#ff9900"></span> 全局路径</div>
+          <div class="legend-item"><span class="swatch" style="background:#00cc66; height:8px"></span> CILQR 轨迹</div>
+          <div class="legend-item"><span class="swatch" style="background:#ff4444"></span> 目标点</div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
