@@ -20,7 +20,8 @@ struct ArticulatedHybridAStarParams {
     // 铰接车辆几何尺寸
     double L_f       = 3.0;   // 前车质心到铰接点距离 (m)
     double L_r       = 3.0;   // 后车质心到铰接点距离 (m)
-    double W_body    = 3.0;   // 车宽 (m)
+    double W_f_body  = 3.0;   // 前车体宽度 (m)
+    double W_r_body  = 3.0;   // 后车体宽度 (m)
     double L_f_body  = 5.0;   // 前车体总长 (m)
     double L_r_body  = 5.0;   // 后车体总长 (m)
 
@@ -39,6 +40,11 @@ struct ArticulatedHybridAStarParams {
     double direction_change_penalty = 1.5;
     double backwards_penalty       = 1.2;
     double heuristic_weight        = 1.5;
+    
+    // 势场/避障参数
+    double obstacle_cost_weight    = 50.0;
+    double obstacle_cost_decay     = 8.0;     // m
+    double max_obstacle_cost       = 1000.0;
 
     // 搜索控制
     int    max_iterations        = 60000;

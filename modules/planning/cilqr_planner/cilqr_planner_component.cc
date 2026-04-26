@@ -87,26 +87,24 @@ bool CilqrPlannerComponent::Init() {
   AINFO << "CILQR config: N=" << arg_.N
         << ", desire_speed=" << arg_.desire_speed
         << ", dt=" << arg_.dt;
-  AINFO << "Obstacle params: ego_rad=" << system_model_.ego_rad
+  AINFO << "Obstacle params: ego_rad_f=" << system_model_.ego_rad_f
+        << ", ego_rad_r=" << system_model_.ego_rad_r
         << ", obs_q1=" << arg_.obs_q1
         << ", obs_q2=" << arg_.obs_q2
         << ", safe_a=" << arg_.safe_a_buffer
         << ", safe_b=" << arg_.safe_b_buffer
         << ", if_cal_obs=" << arg_.if_cal_obs_cost;
 
-  // Rescale ATV physical parameters
-  system_model_.lf = 0.77;
-  system_model_.lr = 0.77;
-  system_model_.len = 0.90;
-  system_model_.width = 0.40;
+  // 车辆参数全部由 vehicle.json 驱动，不再硬编码
   system_model_.dt = arg_.dt;
 
   // Map physical and dynamic limits to articulated A* planner params
   ha_params_.L_f = system_model_.lf;
   ha_params_.L_r = system_model_.lr;
-  ha_params_.W_body = system_model_.width;
-  ha_params_.L_f_body = 0.77;
-  ha_params_.L_r_body = 0.77;
+  ha_params_.W_f_body = system_model_.body_width_f;
+  ha_params_.W_r_body = system_model_.body_width_r;
+  ha_params_.L_f_body = system_model_.body_length_f;
+  ha_params_.L_r_body = system_model_.body_length_r;
   ha_params_.gamma_max = arg_.gamma_max;
   ha_params_.gamma_dot_max = arg_.gamma_dot_max;
   ha_params_.v_desire = arg_.desire_speed;

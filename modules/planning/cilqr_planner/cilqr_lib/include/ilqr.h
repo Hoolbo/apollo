@@ -146,15 +146,18 @@ public:
 // 系统模型
 class SystemModel {
 public:
-  double ego_rad = 7;
-  // double lf      = 1.6;
-  // double lr      =  1.13;
-  // double len       =  2.73;
-  double lf = 3;
-  double lr = 3;
-  double len = 3;
-  double width = 3;
-  double box_length = 5;
+  // ── 前车体参数 ──
+  double lf = 3;              // 前车质心到铰接点距离 (m)
+  double body_length_f = 5;   // 前车体总长 (m)
+  double body_width_f = 3;    // 前车体宽度 (m)
+  double ego_rad_f = 7;       // 前车碰撞椭圆膨胀半径 (m)
+
+  // ── 后车体参数 ──
+  double lr = 3;              // 后车质心到铰接点距离 (m)
+  double body_length_r = 5;   // 后车体总长 (m)
+  double body_width_r = 3;    // 后车体宽度 (m)
+  double ego_rad_r = 7;       // 后车碰撞椭圆膨胀半径 (m)
+
   double dt = 0.1;
   size_t N = 50;
   SystemModel() = default;

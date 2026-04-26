@@ -1686,9 +1686,10 @@ void dynamic_plot(const std::vector<std::vector<double>>& global_plan_log,
         data_file << "  \"vehicle_model\": {\n";
         data_file << "    \"lf\": " << vehicle_model.lf << ",\n";
         data_file << "    \"lr\": " << vehicle_model.lr << ",\n";
-        data_file << "    \"len\": " << vehicle_model.len << ",\n";
-        data_file << "    \"width\": " << vehicle_model.width << ",\n";
-        data_file << "    \"box_length\": " << vehicle_model.box_length << "\n";
+        data_file << "    \"body_length_f\": " << vehicle_model.body_length_f << ",\n";
+        data_file << "    \"body_width_f\": " << vehicle_model.body_width_f << ",\n";
+        data_file << "    \"body_length_r\": " << vehicle_model.body_length_r << ",\n";
+        data_file << "    \"body_width_r\": " << vehicle_model.body_width_r << "\n";
         data_file << "  }\n";
         
         // 移除地图数据保存逻辑，地图数据现在单独保存到maps目录
@@ -1759,8 +1760,8 @@ double compute_max_violation(const Solution& solution, Vehicle& ego, const std::
                 const State& obs_state = obs.trj.get_states()[i];
                 double dx = X[0] - obs_state[0];
                 double dy = X[1] - obs_state[1];
-                double a = obs.length/2 + ego.get_model().ego_rad/2 + arg.safe_a_buffer;
-                double b = obs.width/2 + ego.get_model().ego_rad/2 + arg.safe_b_buffer;
+                double a = obs.length/2 + ego.get_model().ego_rad_f/2 + arg.safe_a_buffer;
+                double b = obs.width/2 + ego.get_model().ego_rad_f/2 + arg.safe_b_buffer;
                 Vector2d dX_obs(dx, dy);
                 Matrix2d R; R << cos(obs_state[2]), sin(obs_state[2]), -sin(obs_state[2]), cos(obs_state[2]);
                 Vector2d dX_obs_cord = R * dX_obs;

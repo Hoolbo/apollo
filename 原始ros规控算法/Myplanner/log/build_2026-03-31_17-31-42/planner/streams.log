@@ -1,0 +1,86 @@
+[0.005s] Invoking command in '/home/hoolbo/final_essay/Code/atv_ws/src/planner/build/planner': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/hoolbo/final_essay/Code/atv_ws/install/bringup:/home/hoolbo/final_essay/Code/atv_ws/install/simple_planner:/home/hoolbo/final_essay/Code/atv_ws/install/dynamic_controller:/home/hoolbo/final_essay/Code/atv_ws/install/description:/home/hoolbo/final_essay/Code/atv_ws/install/controller:/opt/ros/humble /usr/bin/cmake /home/hoolbo/final_essay/Code/atv_ws/src/planner -DCMAKE_INSTALL_PREFIX=/home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner
+[0.035s] -- The C compiler identification is GNU 11.4.0
+[0.064s] -- The CXX compiler identification is GNU 11.4.0
+[0.068s] -- Detecting C compiler ABI info
+[0.108s] -- Detecting C compiler ABI info - done
+[0.112s] -- Check for working C compiler: /usr/bin/cc - skipped
+[0.112s] -- Detecting C compile features
+[0.112s] -- Detecting C compile features - done
+[0.114s] -- Detecting CXX compiler ABI info
+[0.156s] -- Detecting CXX compiler ABI info - done
+[0.159s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[0.160s] -- Detecting CXX compile features
+[0.160s] -- Detecting CXX compile features - done
+[0.162s] -- Found ament_cmake: 1.3.13 (/opt/ros/humble/share/ament_cmake/cmake)
+[0.246s] -- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+[0.293s] -- Found rclcpp: 16.0.18 (/opt/ros/humble/share/rclcpp/cmake)
+[0.317s] -- Found rosidl_generator_c: 3.1.8 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+[0.319s] -- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)
+[0.323s] -- Found rosidl_generator_cpp: 3.1.8 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+[0.329s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[0.337s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[0.358s] -- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+[0.359s] -- Found rmw_fastrtps_cpp: 6.2.10 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+[0.410s] -- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.2")  
+[0.427s] -- Found FastRTPS: /opt/ros/humble/include  
+[0.453s] -- Using RMW implementation 'rmw_fastrtps_cpp' as default
+[0.457s] -- Looking for pthread.h
+[0.503s] -- Looking for pthread.h - found
+[0.503s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+[0.542s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+[0.543s] -- Found Threads: TRUE  
+[0.567s] -- Found nav_msgs: 4.9.1 (/opt/ros/humble/share/nav_msgs/cmake)
+[0.582s] -- Found visualization_msgs: 4.9.1 (/opt/ros/humble/share/visualization_msgs/cmake)
+[0.602s] -- Found tf2: 0.25.19 (/opt/ros/humble/share/tf2/cmake)
+[0.607s] -- Found tf2_ros: 0.25.19 (/opt/ros/humble/share/tf2_ros/cmake)
+[0.650s] -- Found tf2_geometry_msgs: 0.25.19 (/opt/ros/humble/share/tf2_geometry_msgs/cmake)
+[0.656s] -- Found eigen3_cmake_module: 0.1.1 (/opt/ros/humble/share/eigen3_cmake_module/cmake)
+[0.657s] -- Found Eigen3: TRUE (found version "3.4.0") 
+[0.657s] -- Ensuring Eigen3 include directory is part of orocos-kdl CMake target
+[0.662s] -- Found OpenCV: /usr (found version "4.5.4") 
+[0.700s] -- Configuring done
+[0.708s] -- Generating done
+[0.711s] -- Build files have been written to: /home/hoolbo/final_essay/Code/atv_ws/src/planner/build/planner
+[0.717s] Invoked command in '/home/hoolbo/final_essay/Code/atv_ws/src/planner/build/planner' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/hoolbo/final_essay/Code/atv_ws/install/bringup:/home/hoolbo/final_essay/Code/atv_ws/install/simple_planner:/home/hoolbo/final_essay/Code/atv_ws/install/dynamic_controller:/home/hoolbo/final_essay/Code/atv_ws/install/description:/home/hoolbo/final_essay/Code/atv_ws/install/controller:/opt/ros/humble /usr/bin/cmake /home/hoolbo/final_essay/Code/atv_ws/src/planner -DCMAKE_INSTALL_PREFIX=/home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner
+[0.718s] Invoking command in '/home/hoolbo/final_essay/Code/atv_ws/src/planner/build/planner': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/hoolbo/final_essay/Code/atv_ws/install/bringup:/home/hoolbo/final_essay/Code/atv_ws/install/simple_planner:/home/hoolbo/final_essay/Code/atv_ws/install/dynamic_controller:/home/hoolbo/final_essay/Code/atv_ws/install/description:/home/hoolbo/final_essay/Code/atv_ws/install/controller:/opt/ros/humble /usr/bin/cmake --build /home/hoolbo/final_essay/Code/atv_ws/src/planner/build/planner -- -j20 -l20
+[0.748s] [ 12%] [32mBuilding CXX object CMakeFiles/cilqr_lib.dir/src/config_loader.cpp.o[0m
+[0.749s] [ 25%] [32mBuilding CXX object CMakeFiles/cilqr_lib.dir/src/ilqr.cpp.o[0m
+[0.749s] [ 50%] [32mBuilding CXX object CMakeFiles/cilqr_lib.dir/src/utils.cpp.o[0m
+[0.749s] [ 50%] [32mBuilding CXX object CMakeFiles/cilqr_lib.dir/src/articulated_hybrid_astar.cpp.o[0m
+[0.749s] [ 62%] [32mBuilding CXX object CMakeFiles/cilqr_lib.dir/src/ompl_rs.cpp.o[0m
+[6.538s] [ 75%] [32m[1mLinking CXX static library libcilqr_lib.a[0m
+[6.633s] [ 75%] Built target cilqr_lib
+[6.647s] [ 87%] [32mBuilding CXX object CMakeFiles/planner_node.dir/src/planner_node.cpp.o[0m
+[15.418s] [100%] [32m[1mLinking CXX executable planner_node[0m
+[16.345s] [100%] Built target planner_node
+[16.353s] Invoked command in '/home/hoolbo/final_essay/Code/atv_ws/src/planner/build/planner' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/hoolbo/final_essay/Code/atv_ws/install/bringup:/home/hoolbo/final_essay/Code/atv_ws/install/simple_planner:/home/hoolbo/final_essay/Code/atv_ws/install/dynamic_controller:/home/hoolbo/final_essay/Code/atv_ws/install/description:/home/hoolbo/final_essay/Code/atv_ws/install/controller:/opt/ros/humble /usr/bin/cmake --build /home/hoolbo/final_essay/Code/atv_ws/src/planner/build/planner -- -j20 -l20
+[16.359s] Invoking command in '/home/hoolbo/final_essay/Code/atv_ws/src/planner/build/planner': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/hoolbo/final_essay/Code/atv_ws/install/bringup:/home/hoolbo/final_essay/Code/atv_ws/install/simple_planner:/home/hoolbo/final_essay/Code/atv_ws/install/dynamic_controller:/home/hoolbo/final_essay/Code/atv_ws/install/description:/home/hoolbo/final_essay/Code/atv_ws/install/controller:/opt/ros/humble /usr/bin/cmake --install /home/hoolbo/final_essay/Code/atv_ws/src/planner/build/planner
+[16.364s] -- Install configuration: ""
+[16.364s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/lib/planner/planner_node
+[16.370s] -- Set runtime path of "/home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/lib/planner/planner_node" to ""
+[16.370s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/share/planner/config
+[16.370s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/share/planner/config/vehicle.json
+[16.370s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/share/planner/config/ilqr.json
+[16.370s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/share/planner/config/hybrid_astar.json
+[16.370s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/share/planner/config/main.json
+[16.370s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/share/planner/maps
+[16.370s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/share/planner/maps/atv_terrain_global_map.json
+[16.370s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/share/planner/launch
+[16.370s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/share/planner/launch/planner.launch.py
+[16.370s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/lib/planner/obstacle_publisher.py
+[16.370s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/share/ament_index/resource_index/package_run_dependencies/planner
+[16.370s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/share/ament_index/resource_index/parent_prefix_path/planner
+[16.370s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/share/planner/environment/ament_prefix_path.sh
+[16.371s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/share/planner/environment/ament_prefix_path.dsv
+[16.371s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/share/planner/environment/path.sh
+[16.371s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/share/planner/environment/path.dsv
+[16.371s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/share/planner/local_setup.bash
+[16.371s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/share/planner/local_setup.sh
+[16.371s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/share/planner/local_setup.zsh
+[16.371s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/share/planner/local_setup.dsv
+[16.371s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/share/planner/package.dsv
+[16.371s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/share/ament_index/resource_index/packages/planner
+[16.371s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/share/planner/cmake/plannerConfig.cmake
+[16.371s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/share/planner/cmake/plannerConfig-version.cmake
+[16.371s] -- Installing: /home/hoolbo/final_essay/Code/atv_ws/src/planner/install/planner/share/planner/package.xml
+[16.372s] Invoked command in '/home/hoolbo/final_essay/Code/atv_ws/src/planner/build/planner' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/hoolbo/final_essay/Code/atv_ws/install/bringup:/home/hoolbo/final_essay/Code/atv_ws/install/simple_planner:/home/hoolbo/final_essay/Code/atv_ws/install/dynamic_controller:/home/hoolbo/final_essay/Code/atv_ws/install/description:/home/hoolbo/final_essay/Code/atv_ws/install/controller:/opt/ros/humble /usr/bin/cmake --install /home/hoolbo/final_essay/Code/atv_ws/src/planner/build/planner

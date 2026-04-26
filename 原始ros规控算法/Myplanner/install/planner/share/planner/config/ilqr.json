@@ -1,0 +1,67 @@
+{
+      "cilqr": {
+            "N": 50,
+            "max_iter": 100,
+            "tol": 0.01,
+            "rel_tol": 1e-5,
+            "lamb_init": 7.0,
+            "lamb_factor": 2.0,
+            "lamb_max": 6000.0
+      },
+      "pure_pursuit": {
+            "kv": 0.3,
+            "kp": 0.8,
+            "ld0": 0.5,
+            "ld_min": 0.5,
+            "ld_max": 20.0
+      },
+      "cost_weights": {
+            "desire_speed": 4,
+            "desire_heading": 0,
+            "v_rate_weight": 5.0,
+            "ref_weight": 4.0,
+            "Q": [
+                  0.4,
+                  0.4,
+                  1,
+                  1.5
+            ],
+            "R": [
+                  1.0,
+                  0.1
+            ]
+      },
+      "constraints": {
+            "if_cal_obs_cost": true,
+            "if_cal_lane_cost": true,
+            "if_cal_speed_rate_cost": true,
+            "if_cal_gamma_barrier": true,
+            "gamma_max_q1": 1.0,
+            "gamma_max_q2": 3.0,
+            "gamma_min_q1": 1.0,
+            "gamma_min_q2": 3.0,
+            "if_cal_gamma_dot_barrier": true,
+            "gamma_dot_max_q1": 1.0,
+            "gamma_dot_max_q2": 0.5,
+            "gamma_dot_min_q1": 1.0,
+            "gamma_dot_min_q2": 0.5,
+            "acc_q1": 1.0,
+            "acc_q2": 2.0,
+            "trace_safe_width_left": 5.0,
+            "trace_safe_width_right": 5.0,
+            "lane_q1": 1.0,
+            "lane_q2": 1.0,
+            "obs_q1": 3,
+            "obs_q2": 5,
+            "obs_length": 1.4,
+            "obs_width": 1.4,
+            "safe_a_buffer": 0.25,
+            "safe_b_buffer": 0.25,
+            "stitch_dist_threshold": 0.3
+      },
+      "terminal": {
+            "terminal_cost_scale": 50.0,
+            "decel_factor": 0.15,
+            "goal_reached_dist": 1.0
+      }
+}

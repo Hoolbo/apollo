@@ -204,12 +204,23 @@ void load_config(const std::string &main_config_file,
   std::string vehicle_json =
       remove_comments_and_whitespace(load_file_content(vehicle_config_file));
   if (!vehicle_json.empty()) {
-    system_model.lf = get_double(vehicle_json, "lf", system_model.lf);
-    system_model.lr = get_double(vehicle_json, "lr", system_model.lr);
-    system_model.width = get_double(vehicle_json, "width", system_model.width);
-    system_model.box_length = get_double(vehicle_json, "box_length", system_model.box_length);
-    system_model.ego_rad = get_double(vehicle_json, "ego_rad", system_model.ego_rad);
-    
+    // ── 前车体参数 ──
+    std::string front = get_section(vehicle_json, "front_body");
+    if (!front.empty()) {
+      system_model.lf = get_double(front, "pivot_distance", system_model.lf);
+      system_model.body_length_f = get_double(front, "body_length", system_model.body_length_f);
+      system_model.body_width_f = get_double(front, "body_width", system_model.body_width_f);
+      system_model.ego_rad_f = get_double(front, "ego_rad", system_model.ego_rad_f);
+    }
+    // ── 后车体参数 ──
+    std::string rear = get_section(vehicle_json, "rear_body");
+    if (!rear.empty()) {
+      system_model.lr = get_double(rear, "pivot_distance", system_model.lr);
+      system_model.body_length_r = get_double(rear, "body_length", system_model.body_length_r);
+      system_model.body_width_r = get_double(rear, "body_width", system_model.body_width_r);
+      system_model.ego_rad_r = get_double(rear, "ego_rad", system_model.ego_rad_r);
+    }
+
     arg.gamma_max = get_double(vehicle_json, "gamma_max", arg.gamma_max);
     arg.gamma_min = get_double(vehicle_json, "gamma_min", arg.gamma_min);
     arg.gamma_dot_max = get_double(vehicle_json, "gamma_dot_max", arg.gamma_dot_max);
@@ -368,6 +379,12 @@ void load_config(const std::string &main_config_file,
         get_double(src, "goal_tolerance_xy", ha_params.goal_tolerance_xy);
     ha_params.goal_tolerance_heading = get_double(
         src, "goal_tolerance_heading", ha_params.goal_tolerance_heading);
+    ha_params.obstacle_cost_weight =
+        get_double(src, "obstacle_cost_weight", ha_params.obstacle_cost_weight);
+    ha_params.obstacle_cost_decay =
+        get_double(src, "obstacle_cost_decay", ha_params.obstacle_cost_decay);
+    ha_params.max_obstacle_cost =
+        get_double(src, "max_obstacle_cost", ha_params.max_obstacle_cost);
   }
 
   std::cout << "Configuration loaded from config/main.json, config/ilqr.json, "

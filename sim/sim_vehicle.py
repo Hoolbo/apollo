@@ -8,7 +8,7 @@
 使用方法（在容器内，按顺序启动 3 个终端）：
   1. cyber_launch start modules/planning/cilqr_planner/launch/cilqr_planner.launch
   2. python3 modules/control/mpc_controller/mpc_controller_node.py
-  3. python3 modules/control/mpc_controller/test/sim_vehicle.py
+  3. python3 sim/sim_vehicle.py
 """
 
 import math
@@ -30,21 +30,21 @@ SIM_DT = 0.02        # 仿真步长 50Hz
 LOC_PUBLISH_HZ = 50  # 定位发布频率
 
 # ── 初始状态 ──
-INIT_X = 0.0
-INIT_Y = 0.0
-INIT_THETA_FRONT = 0.0
-INIT_THETA_REAR = 0.0
+INIT_X = -160.0
+INIT_Y = -11.0
+INIT_THETA_FRONT = 0.1
+INIT_THETA_REAR = 0.1
 
 # ── 目标点（圆环圆心为原点）──
-GOAL_X = 60.0
-GOAL_Y = 0.0
-GOAL_THETA = -1.57
+GOAL_X = 100.0
+GOAL_Y = 8.0
+GOAL_THETA = 0.1
 
 # ── 车辆参数（和 vehicle.json 一致）──
-L_WB_FRONT = 0.90    # 前车轴距
-L_WB_REAR = 0.90     # 后车轴距
-LF = 0.45            # 前车中心到铰接点
-LR = 0.45            # 后车中心到铰接点
+L_WB_FRONT = 0.60    # 前车轴距
+L_WB_REAR = 0.55     # 后车轴距
+LF = 0.77            # 前车中心到铰接点
+LR = 0.77            # 后车中心到铰接点
 
 
 class ArticulatedVehicleSim:

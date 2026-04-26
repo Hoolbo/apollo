@@ -1,0 +1,14 @@
+{
+    "start_x": 0.0,
+    "start_y": 0.0,
+    "start_theta": 0.0,
+    "goal_x": 60.0,
+    "goal_y": 0.0,
+    "goal_theta": 0.0,
+    "ITER": 1000,
+    "solver_type": "cilqr",
+    "selected_map": "atv_terrain",
+    "obstacle_speed": 0.0,
+    "obstacle_count": 0,
+    "obstacle_distance": 5.0
+}

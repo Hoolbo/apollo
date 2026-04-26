@@ -577,27 +577,47 @@ double CILQRSolver::cal_cost_with_logging(const Solution &solution,
       cost_lane = cost_lane_left + cost_lane_right;
     }
 
-    // 障碍物代价（多障碍物累加）
+    // 障碍物代价（多障碍物累加，前后双椭圆检测）
     if (arg.if_cal_obs_cost) {
+      const auto& mdl = ego.get_model();
+      double theta = X[2], gamma_val = X[3];
+      double theta_r = theta - gamma_val;
+      // 后车体中心坐标
+      double pr_x = X[0] - mdl.lf * cos(theta) - mdl.lr * cos(theta_r);
+      double pr_y = X[1] - mdl.lf * sin(theta) - mdl.lr * sin(theta_r);
+
       for (size_t obs_idx = 0; obs_idx < obs_list.size(); ++obs_idx) {
         const ObstacleData &obs = obs_list[obs_idx];
         if (i >= obs.trj.get_states().size())
-          continue; // 长度保护
+          continue;
         const State &obs_state = obs.trj.get_states()[i];
-        double dx = X[0] - obs_state[0];
-        double dy = X[1] - obs_state[1];
-        double a = obs.length / 2 + ego.get_model().ego_rad +
-                   arg.safe_a_buffer;
-        double b =
-            obs.width / 2 + ego.get_model().ego_rad + arg.safe_b_buffer;
-        Vector2d dX_obs(dx, dy);
-        Matrix2d R;
-        R << cos(obs_state[2]), sin(obs_state[2]), -sin(obs_state[2]),
+        Matrix2d R_obs;
+        R_obs << cos(obs_state[2]), sin(obs_state[2]), -sin(obs_state[2]),
             cos(obs_state[2]);
-        Vector2d dX_obs_cord = R * dX_obs;
-        double c = 1 - (pow(dX_obs_cord[0], 2) / pow(a, 2) +
-                        pow(dX_obs_cord[1], 2) / pow(b, 2));
-        cost_obs += arg.obs_q1 * exp(arg.obs_q2 * c);
+
+        // ── 前车体椭圆 ──
+        {
+          double dx = X[0] - obs_state[0];
+          double dy = X[1] - obs_state[1];
+          double a = obs.length / 2 + mdl.ego_rad_f + arg.safe_a_buffer;
+          double b = obs.width / 2 + mdl.ego_rad_f + arg.safe_b_buffer;
+          Vector2d dX_obs_cord = R_obs * Vector2d(dx, dy);
+          double c = 1 - (pow(dX_obs_cord[0], 2) / pow(a, 2) +
+                          pow(dX_obs_cord[1], 2) / pow(b, 2));
+          cost_obs += arg.obs_q1 * exp(arg.obs_q2 * c);
+        }
+
+        // ── 后车体椭圆 ──
+        {
+          double dx = pr_x - obs_state[0];
+          double dy = pr_y - obs_state[1];
+          double a = obs.length / 2 + mdl.ego_rad_r + arg.safe_a_buffer;
+          double b = obs.width / 2 + mdl.ego_rad_r + arg.safe_b_buffer;
+          Vector2d dX_obs_cord = R_obs * Vector2d(dx, dy);
+          double c = 1 - (pow(dX_obs_cord[0], 2) / pow(a, 2) +
+                          pow(dX_obs_cord[1], 2) / pow(b, 2));
+          cost_obs += arg.obs_q1 * exp(arg.obs_q2 * c);
+        }
       }
     }
 
@@ -819,37 +839,68 @@ void CILQRSolver::compute_cost_derivatives(const Solution &solution) {
     l_dx_ref *= arg.ref_weight;
     l_ddx_ref *= arg.ref_weight;
 
-    // 每步重置障碍物导数
+    // 每步重置障碍物导数（前后双椭圆）
     Vector4d db_obs = Vector4d::Zero();
     Matrix4d ddb_obs = Matrix4d::Zero();
 
     if (arg.if_cal_obs_cost) {
+      const auto& mdl = ego.get_model();
+      double theta = X[2], gamma_val = X[3];
+      double theta_r = theta - gamma_val;
+      // 后车体中心坐标
+      double pr_x = X[0] - mdl.lf * cos(theta) - mdl.lr * cos(theta_r);
+      double pr_y = X[1] - mdl.lf * sin(theta) - mdl.lr * sin(theta_r);
+      // 后车体中心对状态的雅可比 J_r (2x4)
+      Matrix<double,2,4> J_r;
+      J_r << 1, 0,  mdl.lf*sin(theta) + mdl.lr*sin(theta_r), -mdl.lr*sin(theta_r),
+             0, 1, -mdl.lf*cos(theta) - mdl.lr*cos(theta_r),  mdl.lr*cos(theta_r);
+
       for (size_t obs_idx = 0; obs_idx < obs_list.size(); ++obs_idx) {
         const ObstacleData &obs = obs_list[obs_idx];
         if (i >= obs.trj.get_states().size())
           continue;
         const State &obs_state = obs.trj.get_states()[i];
-        double dx = X[0] - obs_state[0];
-        double dy = X[1] - obs_state[1];
-        double a = obs.length / 2 + ego.get_model().ego_rad +
-                   arg.safe_a_buffer;
-        double b =
-            obs.width / 2 + ego.get_model().ego_rad + arg.safe_b_buffer;
-        Vector2d dX_obs(dx, dy);
-        Matrix2d R;
-        R << cos(obs_state[2]), sin(obs_state[2]), -sin(obs_state[2]),
+        Matrix2d R_obs;
+        R_obs << cos(obs_state[2]), sin(obs_state[2]), -sin(obs_state[2]),
             cos(obs_state[2]);
-        Vector2d dX_obs_cord = R * dX_obs;
-        double c = 1 - (pow(dX_obs_cord[0], 2) / pow(a, 2) +
-                        pow(dX_obs_cord[1], 2) / pow(b, 2));
-        Vector2d grad_local(-2 * dX_obs_cord[0] / (a * a),
-                            -2 * dX_obs_cord[1] / (b * b));
-        Vector2d grad_global = R.transpose() * grad_local;
-        Vector4d c_dot;
-        c_dot << grad_global[0], grad_global[1], 0.0, 0.0;
-        double exp_term = arg.obs_q1 * arg.obs_q2 * std::exp(arg.obs_q2 * c);
-        db_obs += exp_term * c_dot;
-        ddb_obs += exp_term * arg.obs_q2 * c_dot * c_dot.transpose();
+
+        // ── 前车体椭圆导数 ──
+        {
+          double dx = X[0] - obs_state[0];
+          double dy = X[1] - obs_state[1];
+          double a = obs.length / 2 + mdl.ego_rad_f + arg.safe_a_buffer;
+          double b = obs.width / 2 + mdl.ego_rad_f + arg.safe_b_buffer;
+          Vector2d dX_obs_cord = R_obs * Vector2d(dx, dy);
+          double c = 1 - (pow(dX_obs_cord[0], 2) / pow(a, 2) +
+                          pow(dX_obs_cord[1], 2) / pow(b, 2));
+          Vector2d grad_local(-2 * dX_obs_cord[0] / (a * a),
+                              -2 * dX_obs_cord[1] / (b * b));
+          Vector2d grad_global = R_obs.transpose() * grad_local;
+          Vector4d c_dot;
+          c_dot << grad_global[0], grad_global[1], 0.0, 0.0;
+          double exp_term = arg.obs_q1 * arg.obs_q2 * std::exp(arg.obs_q2 * c);
+          db_obs += exp_term * c_dot;
+          ddb_obs += exp_term * arg.obs_q2 * c_dot * c_dot.transpose();
+        }
+
+        // ── 后车体椭圆导数 ──
+        {
+          double dx = pr_x - obs_state[0];
+          double dy = pr_y - obs_state[1];
+          double a = obs.length / 2 + mdl.ego_rad_r + arg.safe_a_buffer;
+          double b = obs.width / 2 + mdl.ego_rad_r + arg.safe_b_buffer;
+          Vector2d dX_obs_cord = R_obs * Vector2d(dx, dy);
+          double c = 1 - (pow(dX_obs_cord[0], 2) / pow(a, 2) +
+                          pow(dX_obs_cord[1], 2) / pow(b, 2));
+          Vector2d grad_local(-2 * dX_obs_cord[0] / (a * a),
+                              -2 * dX_obs_cord[1] / (b * b));
+          Vector2d grad_global_2d = R_obs.transpose() * grad_local;
+          // 链式法则: ∂c/∂state = J_r^T * (∂c/∂p_r)
+          Vector4d c_dot = J_r.transpose() * grad_global_2d;
+          double exp_term = arg.obs_q1 * arg.obs_q2 * std::exp(arg.obs_q2 * c);
+          db_obs += exp_term * c_dot;
+          ddb_obs += exp_term * arg.obs_q2 * c_dot * c_dot.transpose();
+        }
       }
     }
 
@@ -1550,10 +1601,10 @@ void ALILQRSolver::update_constraints(const Solution &solution) {
         const State &obs_state = obs.trj.get_states()[i];
         double dx = X[0] - obs_state[0];
         double dy = X[1] - obs_state[1];
-        double a = obs.length / 2 + ego.get_model().ego_rad +
+        double a = obs.length / 2 + ego.get_model().ego_rad_f +
                    arg.safe_a_buffer;
         double b =
-            obs.width / 2 + ego.get_model().ego_rad + arg.safe_b_buffer;
+            obs.width / 2 + ego.get_model().ego_rad_f + arg.safe_b_buffer;
         Vector2d dX_obs(dx, dy);
         Matrix2d R;
         R << cos(obs_state[2]), sin(obs_state[2]), -sin(obs_state[2]),
@@ -1632,10 +1683,10 @@ double ALILQRSolver::max_constraint_violation(const Solution &solution) {
         const State &obs_state = obs.trj.get_states()[i];
         double dx = X[0] - obs_state[0];
         double dy = X[1] - obs_state[1];
-        double a = obs.length / 2 + ego.get_model().ego_rad +
+        double a = obs.length / 2 + ego.get_model().ego_rad_f +
                    arg.safe_a_buffer;
         double b =
-            obs.width / 2 + ego.get_model().ego_rad + arg.safe_b_buffer;
+            obs.width / 2 + ego.get_model().ego_rad_f + arg.safe_b_buffer;
         Vector2d dX_obs(dx, dy);
         Matrix2d R;
         R << cos(obs_state[2]), sin(obs_state[2]), -sin(obs_state[2]),
@@ -1736,9 +1787,9 @@ void ALILQRSolver::compute_al_derivatives(const Solution &solution) {
             const State &obs_state = obs.trj.get_states()[i];
             double dx = X[0] - obs_state[0];
             double dy = X[1] - obs_state[1];
-            double a = obs.length / 2 + ego.get_model().ego_rad +
+            double a = obs.length / 2 + ego.get_model().ego_rad_f +
                        arg.safe_a_buffer;
-            double b = obs.width / 2 + ego.get_model().ego_rad +
+            double b = obs.width / 2 + ego.get_model().ego_rad_f +
                        arg.safe_b_buffer;
             Vector2d dX_obs(dx, dy);
             Matrix2d R;
@@ -2196,10 +2247,10 @@ double ALILQRSolver::cal_cost(const Solution &solution) {
         const State &obs_state = obs.trj.get_states()[i];
         double dx = X[0] - obs_state[0];
         double dy = X[1] - obs_state[1];
-        double a = obs.length / 2 + ego.get_model().ego_rad +
+        double a = obs.length / 2 + ego.get_model().ego_rad_f +
                    arg.safe_a_buffer;
         double b =
-            obs.width / 2 + ego.get_model().ego_rad + arg.safe_b_buffer;
+            obs.width / 2 + ego.get_model().ego_rad_f + arg.safe_b_buffer;
         Vector2d dX_obs(dx, dy);
         Matrix2d R;
         R << cos(obs_state[2]), sin(obs_state[2]), -sin(obs_state[2]),

@@ -1,0 +1,17 @@
+{
+    "grid_resolution": 0.5,
+    "heading_resolution": 0.0872665,
+    "gamma_resolution": 0.0872665,
+    "move_step": 1.0,
+    "move_step_backwards": 1.0,
+    "allow_reverse": false,
+    "num_gamma_angles": 3,
+    "steering_penalty": 0.2,
+    "steering_change_penalty": 0.5,
+    "direction_change_penalty": 1.5,
+    "backwards_penalty": 1.2,
+    "heuristic_weight": 1.5,
+    "max_iterations": 60000,
+    "goal_tolerance_xy": 2.5,
+    "goal_tolerance_heading": 0.261799
+}

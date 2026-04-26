@@ -26,6 +26,7 @@
 #include "modules/common_msgs/basic_msgs/pnc_point.pb.h"
 #include "modules/planning/planning_base/proto/planning_config.pb.h"
 #include "modules/planning/planning_base/proto/planning_status.pb.h"
+
 #include "modules/map/hdmap/hdmap_common.h"
 #include "modules/planning/planning_base/common/planning_context.h"
 
@@ -197,6 +198,7 @@ bool KeepClear::BuildKeepClearObstacle(
   ADEBUG << "keep clear obstacle: [" << keep_clear_start_s << ", "
          << keep_clear_end_s << "]";
   // create virtual static obstacle
+
   auto* obstacle =
       frame->CreateStaticObstacle(reference_line_info, virtual_obstacle_id,
                                   keep_clear_start_s, keep_clear_end_s);

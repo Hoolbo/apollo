@@ -1,0 +1,149 @@
+VERSION ""
+
+
+NS_ : 
+	NS_DESC_
+	CM_
+	BA_DEF_
+	BA_
+	VAL_
+	CAT_DEF_
+	CAT_
+	FILTER
+	BA_DEF_DEF_
+	EV_DATA_
+	ENVVAR_DATA_
+	SGTYPE_
+	SGTYPE_VAL_
+	BA_DEF_SGTYPE_
+	BA_SGTYPE_
+	SIG_TYPE_REF_
+	VAL_TABLE_
+	SIG_GROUP_
+	SIG_VALTYPE_
+	SIGTYPE_VALTYPE_
+	BO_TX_BU_
+	BA_DEF_REL_
+	BA_REL_
+	BA_DEF_DEF_REL_
+	BU_SG_REL_
+	BU_EV_REL_
+	BU_BO_REL_
+	SG_MUL_VAL_
+
+BS_:
+
+BU_: VCU ACU
+VAL_TABLE_ EPS_ACU_Error 597 "角度超过限制" 295 "手动介于退出" 99 "角度传感器出错" 49 "使能端输入未低电平" 21 "MOS驱动问题" 7 "电流过大" 3 "工作电压低" 1 "超时未到目标角度" ;
+VAL_TABLE_ DriveMotor_ACU_Select_Reply 1 "接受到指令" 0 "未接受到指令" ;
+VAL_TABLE_ DriveMotor_ACU_Select_Lock 1 "开" 0 "关" ;
+VAL_TABLE_ DriveMotor_ACU_Error 1 "驻车按下" 0 "驻车按键释放" ;
+VAL_TABLE_ ACU_DriveMotor_Select_Shift 2 "R档" 1 "D档" 0 "P档" ;
+VAL_TABLE_ ACU_DriveMotor_Select_Enable 1 "开" 0 "关" ;
+VAL_TABLE_ ACU_DriveMotor_Select_Mode 1 "扭矩控制" 0 "速度控制" ;
+VAL_TABLE_ ACU_EPS_Enable 1 "工作" 0 "停止" ;
+VAL_TABLE_ ACU_EMB_HandBrakeEnable 1 "驻车" 0 "释放" ;
+VAL_TABLE_ Remote_control 1 "开" 0 "关" ;
+VAL_TABLE_ VCU_Receive_info 1 "接受到指令" 0 "未接受到指令" ;
+VAL_TABLE_ VCU_Mode_Enable 1 "自动" 0 "手动" ;
+VAL_TABLE_ VCU_ACU_Error 1 "故障" 0 "无故障" ;
+VAL_TABLE_ ACU_VCU_Voice 4097 "5" 256 "4" 17 "3" 16 "2" 1 "1" ;
+VAL_TABLE_ ACU_VCU_TaskSweep 1 "开" 0 "关" ;
+VAL_TABLE_ ACU_VCU_TaskSpray 1 "开" 0 "关" ;
+VAL_TABLE_ ACU_VCU_TaskRise 1 "开" 0 "关" ;
+VAL_TABLE_ ACU_VCU_TaskDust 1 "开" 0 "关" ;
+VAL_TABLE_ ACU_VCU_LightFrt 1 "开" 0 "关" ;
+VAL_TABLE_ ACU_VCU_LightRightTurn 1 "开" 0 "关" ;
+VAL_TABLE_ ACU_VCU_LightLeftTurn 1 "开" 0 "关" ;
+VAL_TABLE_ ACU_VCU_LightHorn 1 "开" 0 "关" ;
+VAL_TABLE_ ACU_VCU_LightBrake 1 "开" 0 "关" ;
+
+
+BO_ 524 VCU_ACU_General: 8 VCU
+ SG_ ACU_Receive_info : 59|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ ACU_Remote_control : 62|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ ACU_Error : 0|1@1+ (1,0) [0|1] "" Vector__XXX
+
+BO_ 556 EPS_ACU: 8 VCU
+ SG_ EPS_ACU_Error : 0|8@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ EPS_ACU_Enable : 56|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ EPS_ACU_Angle : 40|16@1+ (1,-1024) [-324|1724] "deg" Vector__XXX
+
+BO_ 547 ACU_EPS: 8 ACU
+ SG_ ACU_EPS_Enable : 56|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ ACU_EPS_Angle : 40|16@1+ (1,-1024) [-324|1724] "deg" Vector__XXX
+
+BO_ 572 DriveMotor_ACU: 8 VCU
+ SG_ DriveMotor_ACU_Torque : 24|16@1+ (1,0) [0|0] "N.m" Vector__XXX
+ SG_ DriveMotor_ACU_Speed : 40|16@1+ (0.1,0) [0|1000] "km/h" Vector__XXX
+ SG_ DriveMotor_ACU_Select_Shift : 60|2@1+ (1,0) [0|3] "" Vector__XXX
+ SG_ DriveMotor_ACU_Select_Reply : 59|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ DriveMotor_ACU_Select_Mode : 57|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ DriveMotor_ACU_Select_Lock : 58|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ DriveMotor_ACU_Select_Enable : 56|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ DriveMotor_ACU_Stop : 0|1@1+ (1,0) [0|1] "" Vector__XXX
+
+BO_ 563 ACU_DriveMotor: 8 ACU
+ SG_ ACU_DriveMotor_Torque : 24|16@1+ (1,0) [0|0] "N.M" Vector__XXX
+ SG_ ACU_DriveMotor_Speed : 40|16@1+ (0.1,0) [0|1000] "km/h" Vector__XXX
+ SG_ ACU_DriveMotor_Select_Shift : 60|2@1- (1,0) [0|0] "" Vector__XXX
+ SG_ ACU_DriveMotor_Select_Mode : 57|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ ACU_DriveMotor_Select_Enable : 56|1@1+ (1,0) [0|1] "" Vector__XXX
+
+
+
+EV_ EnvKlemme30: 0 [0|1] "" 1 1 DUMMY_NODE_VECTOR0 Vector__XXX;
+
+EV_ EnvKlemme15: 0 [0|1] "" 0 2 DUMMY_NODE_VECTOR0 Vector__XXX;
+
+BA_DEF_ BU_  "NodeLayerModules" STRING ;
+BA_DEF_ BO_  "GenMsgStartDelayTime" INT 0 65535;
+BA_DEF_ SG_  "NWM-WakeupAllowed" ENUM  "No","Yes";
+BA_DEF_ BO_  "NmMessage" ENUM  "no","yes";
+BA_DEF_ BO_  "GenMsgILSupport" ENUM  "No","Yes";
+BA_DEF_ BU_  "NmNode" ENUM  "no","yes";
+BA_DEF_ BU_  "NmStationAddress" INT 0 63;
+BA_DEF_  "NmBaseAddress" HEX 1024 1087;
+BA_DEF_ BO_  "GenMsgCycleTimeFast" INT 0 50000;
+BA_DEF_  "BusType" STRING ;
+BA_DEF_ BO_  "GenMsgCycleTime" INT 0 50000;
+BA_DEF_ BO_  "GenMsgDelayTime" INT 0 1000;
+BA_DEF_ BO_  "GenMsgNrOfRepetition" INT 0 999999;
+BA_DEF_ BO_  "GenMsgSendType" ENUM  "Cyclic","NotUsed","NotUsed","NotUsed","NotUsed","NotUsed","NotUsed","IfActive","NoMsgSendType","NotUsed","vector_leerstring";
+BA_DEF_ SG_  "GenSigInactiveValue" INT 0 100000;
+BA_DEF_ SG_  "GenSigSendType" ENUM  "Cyclic","OnWrite","OnWriteWithRepetition","OnChange","OnChangeWithRepetition","IfActive","IfActiveWithRepetition","NoSigSendType","NotUsed","NotUsed","NotUsed","NotUsed","NotUsed";
+BA_DEF_ SG_  "GenSigStartValue" FLOAT 0 100000000000;
+BA_DEF_DEF_  "NodeLayerModules" "CANoeILNLVector.dll";
+BA_DEF_DEF_  "GenMsgStartDelayTime" 0;
+BA_DEF_DEF_  "NWM-WakeupAllowed" "";
+BA_DEF_DEF_  "NmMessage" "no";
+BA_DEF_DEF_  "GenMsgILSupport" "Yes";
+BA_DEF_DEF_  "NmNode" "no";
+BA_DEF_DEF_  "NmStationAddress" 0;
+BA_DEF_DEF_  "NmBaseAddress" 1024;
+BA_DEF_DEF_  "GenMsgCycleTimeFast" 0;
+BA_DEF_DEF_  "BusType" "";
+BA_DEF_DEF_  "GenMsgCycleTime" 20;
+BA_DEF_DEF_  "GenMsgDelayTime" 0;
+BA_DEF_DEF_  "GenMsgNrOfRepetition" 0;
+BA_DEF_DEF_  "GenMsgSendType" "NoMsgSendType";
+BA_DEF_DEF_  "GenSigInactiveValue" 0;
+BA_DEF_DEF_  "GenSigSendType" "Cyclic";
+BA_DEF_DEF_  "GenSigStartValue" 0;
+BA_ "BusType" "CAN";
+BA_ "GenSigStartValue" SG_ 556 EPS_ACU_Angle 2048;
+BA_ "GenSigStartValue" SG_ 547 ACU_EPS_Angle 2048;
+VAL_ 524 ACU_Error 1 "故障" 0 "无故障" ;
+VAL_ 556 EPS_ACU_Error 597 "角度超过限制" 295 "手动介于退出" 99 "角度传感器出错" 49 "使能端输入未低电平" 21 "MOS驱动问题" 7 "电流过大" 3 "工作电压低" 1 "超时未到目标角度" ;
+VAL_ 556 EPS_ACU_Enable 1 "工作" 0 "停止" ;
+VAL_ 547 ACU_EPS_Enable 1 "工作" 0 "停止" ;
+VAL_ 572 DriveMotor_ACU_Select_Shift 16 "R档" 1 "D档" 0 "P档" ;
+VAL_ 572 DriveMotor_ACU_Select_Reply 1 "接受到指令" 0 "未接受到指令" ;
+VAL_ 572 DriveMotor_ACU_Select_Mode 1 "扭矩控制" 0 "速度控制" ;
+VAL_ 572 DriveMotor_ACU_Select_Lock 1 "开" 0 "关" ;
+VAL_ 572 DriveMotor_ACU_Select_Enable 1 "开" 0 "关" ;
+VAL_ 572 DriveMotor_ACU_Stop 1 "驻车按下" 0 "驻车按键释放" ;
+VAL_ 563 ACU_DriveMotor_Select_Shift 16 "R档" 1 "D档" 0 "P档" ;
+VAL_ 563 ACU_DriveMotor_Select_Mode 1 "扭矩控制" 0 "速度控制" ;
+VAL_ 563 ACU_DriveMotor_Select_Enable 1 "开" 0 "关" ;
+

@@ -117,13 +117,13 @@ void ArticulatedVehicleChecker::getVehicleCorners(
 
     float xf = (float)x_f, yf = (float)y_f;
     float hl_f = (float)(params_.L_f_body / 2.0);
-    float hw   = (float)(params_.W_body   / 2.0);
+    float hw_f = (float)(params_.W_f_body / 2.0);
 
     // Front body corners
-    fc << xf + hl_f*cos_f - hw*sin_f,  yf + hl_f*sin_f + hw*cos_f,
-          xf + hl_f*cos_f + hw*sin_f,  yf + hl_f*sin_f - hw*cos_f,
-          xf - hl_f*cos_f + hw*sin_f,  yf - hl_f*sin_f - hw*cos_f,
-          xf - hl_f*cos_f - hw*sin_f,  yf - hl_f*sin_f + hw*cos_f;
+    fc << xf + hl_f*cos_f - hw_f*sin_f,  yf + hl_f*sin_f + hw_f*cos_f,
+          xf + hl_f*cos_f + hw_f*sin_f,  yf + hl_f*sin_f - hw_f*cos_f,
+          xf - hl_f*cos_f + hw_f*sin_f,  yf - hl_f*sin_f - hw_f*cos_f,
+          xf - hl_f*cos_f - hw_f*sin_f,  yf - hl_f*sin_f + hw_f*cos_f;
 
     // Articulation point → rear body center
     float x_c = xf - (float)params_.L_f * cos_f;
@@ -131,11 +131,12 @@ void ArticulatedVehicleChecker::getVehicleCorners(
     float x_r = x_c - (float)params_.L_r * cos_r;
     float y_r = y_c - (float)params_.L_r * sin_r;
     float hl_r = (float)(params_.L_r_body / 2.0);
+    float hw_r = (float)(params_.W_r_body / 2.0);
 
-    rc << x_r + hl_r*cos_r - hw*sin_r,  y_r + hl_r*sin_r + hw*cos_r,
-          x_r + hl_r*cos_r + hw*sin_r,  y_r + hl_r*sin_r - hw*cos_r,
-          x_r - hl_r*cos_r + hw*sin_r,  y_r - hl_r*sin_r - hw*cos_r,
-          x_r - hl_r*cos_r - hw*sin_r,  y_r - hl_r*sin_r + hw*cos_r;
+    rc << x_r + hl_r*cos_r - hw_r*sin_r,  y_r + hl_r*sin_r + hw_r*cos_r,
+          x_r + hl_r*cos_r + hw_r*sin_r,  y_r + hl_r*sin_r - hw_r*cos_r,
+          x_r - hl_r*cos_r + hw_r*sin_r,  y_r - hl_r*sin_r - hw_r*cos_r,
+          x_r - hl_r*cos_r - hw_r*sin_r,  y_r - hl_r*sin_r + hw_r*cos_r;
 }
 
 // SAT: 4-axis test between rectangle poly (4×2) and line segment seg
@@ -412,8 +413,7 @@ bool articulated_hybrid_astar_plan(
     std::vector<Point>& out_points,
     std::vector<std::array<double,4>>* out_states)
 {
-    std::cout << "[ArtHA*] Building RDP obstacle segments...\n";
-    auto env_segments = vectorizeMapRDP(map_data, 3.0);
+    std::vector<Segment2D> env_segments = vectorizeMapRDP(map_data, 3.0);
     std::cout << "[ArtHA*] " << env_segments.size() << " segments extracted.\n";
 
     ArticulatedVehicleChecker checker(params, env_segments);
@@ -421,7 +421,18 @@ bool articulated_hybrid_astar_plan(
     std::cout << "[ArtHA*] Computing Dijkstra heuristic map...\n";
     auto dijkstra_map = computeArticulatedDijkstraMap(
         map_data, goal_state[0], goal_state[1]);
-    std::cout << "[ArtHA*] Done.\n";
+        
+    // --- Compute Voronoi distance map ---
+    std::cout << "[ArtHA*] Computing Voronoi distance map...\n";
+    cv::Mat binary_map(map_data.height, map_data.width, CV_8UC1);
+    for (int y = 0; y < map_data.height; ++y) {
+        for (int x = 0; x < map_data.width; ++x) {
+            binary_map.at<uint8_t>(y, x) = (map_data.data[y][x] < 0.0) ? 0 : 255;
+        }
+    }
+    cv::Mat dist_img;
+    cv::distanceTransform(binary_map, dist_img, cv::DIST_L2, 3);
+    std::cout << "[ArtHA*] Initialization Done.\n";
 
     // Lambda: look up Dijkstra distance safely
     auto h_obs = [&](double x, double y) -> double {
@@ -576,7 +587,18 @@ bool articulated_hybrid_astar_plan(
                 if (is_fwd != current->is_forward)
                     g_cost += params.direction_change_penalty;
 
-                double f_cost = g_cost + heuristic(next_x, next_y, next_theta);
+                // --- Voronoi Obstacle Cost ---
+                int vx = (int)std::floor((next_x - map_data.origin[0]) / map_data.resolution);
+                int vy = (int)std::floor((next_y - map_data.origin[1]) / map_data.resolution);
+                double total_obs_cost = 0.0;
+                if (vx >= 0 && vx < map_data.width && vy >= 0 && vy < map_data.height) {
+                    float dist_pixels = dist_img.at<float>(vy, vx);
+                    double dist_m = dist_pixels * map_data.resolution;
+                    double obs_cost = params.max_obstacle_cost * std::exp(-dist_m / params.obstacle_cost_decay);
+                    total_obs_cost = params.obstacle_cost_weight * obs_cost;
+                }
+
+                double f_cost = g_cost + heuristic(next_x, next_y, next_theta) + total_obs_cost;
 
                 auto neighbor = std::make_shared<ArticulatedNode>();
                 neighbor->x = next_x; neighbor->y = next_y;
