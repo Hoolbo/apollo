@@ -11,6 +11,7 @@ import json
 import argparse
 import numpy as np
 import os
+import cv2
 
 def parse_lane_boundaries(txt):
     """从 base_map.txt 中解析每条 lane 的左右边界点。"""
@@ -109,44 +110,53 @@ def generate_boundary_from_center(center_points, half_width=2.0):
     return left, right
 
 
+def densify_polyline(pts, max_gap=0.5):
+    """对折线点进行插值加密，确保相邻点间距 <= max_gap 米。
+    
+    HD Map 边界点间距不均匀（有的 5~20m 一个点），
+    直接构造多边形会在稀疏处产生大台阶。
+    插值加密后多边形边界更贴合实际道路曲线。
+    """
+    if len(pts) < 2:
+        return pts
+    result = [pts[0]]
+    for i in range(1, len(pts)):
+        dx = pts[i][0] - pts[i-1][0]
+        dy = pts[i][1] - pts[i-1][1]
+        dist = np.sqrt(dx*dx + dy*dy)
+        n_seg = max(1, int(np.ceil(dist / max_gap)))
+        for k in range(1, n_seg + 1):
+            t = k / n_seg
+            result.append((pts[i-1][0] + t * dx, pts[i-1][1] + t * dy))
+    return result
+
+
 def fill_polygon_on_grid(grid, polygon_pts, origin_x, origin_y, resolution, value=0.0):
-    """使用扫描线算法在栅格上填充多边形区域。"""
+    """使用 OpenCV fillPoly 在栅格上填充多边形区域。
+    
+    比手写扫描线更精确，边界更平滑。
+    """
     if len(polygon_pts) < 3:
         return
     
     pts = np.array(polygon_pts)
-    # 转换到栅格坐标
+    # 转换到栅格坐标（像素中心）
     gx = (pts[:, 0] - origin_x) / resolution
     gy = (pts[:, 1] - origin_y) / resolution
     
+    # OpenCV fillPoly 使用整数坐标，用 shift 参数做亚像素精度
+    SHIFT = 4  # 16x 亚像素精度
+    scale = 1 << SHIFT
+    pixel_pts = np.column_stack([gx * scale, gy * scale]).astype(np.int32)
+    pixel_pts = pixel_pts.reshape(1, -1, 2)  # fillPoly 需要 (1, N, 2)
+    
+    # 创建临时 mask
     height, width = grid.shape
+    mask = np.zeros((height, width), dtype=np.uint8)
+    cv2.fillPoly(mask, pixel_pts, 1, lineType=cv2.LINE_8, shift=SHIFT)
     
-    min_y = max(0, int(np.floor(gy.min())))
-    max_y = min(height - 1, int(np.ceil(gy.max())))
-    
-    for y in range(min_y, max_y + 1):
-        # 找到与扫描线相交的边
-        intersections = []
-        n = len(gx)
-        for i in range(n):
-            j = (i + 1) % n
-            y1, y2 = gy[i], gy[j]
-            if y1 == y2:
-                continue
-            if y < min(y1, y2) or y > max(y1, y2):
-                continue
-            # 线性插值求交点的 x 坐标
-            t = (y - y1) / (y2 - y1)
-            x_intersect = gx[i] + t * (gx[j] - gx[i])
-            intersections.append(x_intersect)
-        
-        intersections.sort()
-        
-        # 成对填充
-        for k in range(0, len(intersections) - 1, 2):
-            x_start = max(0, int(np.floor(intersections[k])))
-            x_end = min(width - 1, int(np.ceil(intersections[k + 1])))
-            grid[y, x_start:x_end + 1] = value
+    # 应用 mask
+    grid[mask > 0] = value
 
 
 def fill_thick_polyline(grid, points, origin_x, origin_y, resolution, half_width_cells=2, value=0.0):
@@ -318,8 +328,11 @@ def main():
                     center_pts, half_width=args.lane_width / 2)
         
         if left_pts and right_pts and len(left_pts) >= 2 and len(right_pts) >= 2:
+            # 插值加密边界点（消除稀疏采样导致的大台阶）
+            left_dense = densify_polyline(left_pts, max_gap=args.resolution * 2)
+            right_dense = densify_polyline(right_pts, max_gap=args.resolution * 2)
             # 构造多边形: 左边界正序 + 右边界逆序
-            polygon = left_pts + list(reversed(right_pts))
+            polygon = left_dense + list(reversed(right_dense))
             fill_polygon_on_grid(grid, polygon, origin_x, origin_y, args.resolution, value=0.0)
             filled_lanes += 1
         elif center_pts:
@@ -330,6 +343,41 @@ def main():
             filled_lanes += 1
     
     print(f"填充了 {filled_lanes}/{len(lanes)} 条车道")
+    
+    # 形态学闭运算：填补相邻车道之间的间隙
+    # HD Map 中双车道各自有边界，中间存在微小缝隙
+    close_radius = max(1, int(3.0 / args.resolution))  # 3m 半径
+    print(f"\n形态学闭运算 (半径={close_radius}px = {close_radius * args.resolution:.1f}m)...")
+    passable_mask = (grid == 0.0).astype(np.uint8)
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, 
+                                        (2 * close_radius + 1, 2 * close_radius + 1))
+    closed = cv2.morphologyEx(passable_mask, cv2.MORPH_CLOSE, kernel)
+    # 只填补新增的区域（原来是 -1 的变成 0）
+    new_passable = (closed == 1) & (grid == -1.0)
+    grid[new_passable] = 0.0
+    print(f"  填补了 {new_passable.sum():,} 个间隙格子")
+    
+    # 填充被可通行区域包围的小面积孤立障碍（圆环入口三角间隙等）
+    print("填充孤立小障碍区域...")
+    obstacle_mask = (grid == -1.0).astype(np.uint8)
+    num_labels, labels = cv2.connectedComponents(obstacle_mask, connectivity=8)
+    # 找到接触地图边界的连通域（这些是真正的外部障碍）
+    border_labels = set()
+    border_labels.update(labels[0, :].tolist())       # 上边
+    border_labels.update(labels[-1, :].tolist())      # 下边
+    border_labels.update(labels[:, 0].tolist())       # 左边
+    border_labels.update(labels[:, -1].tolist())      # 右边
+    
+    max_fill_area = 500  # 最大填充面积（格子数），500格 = 20m²@0.2m
+    filled_count = 0
+    for label_id in range(1, num_labels):  # 0 是背景
+        if label_id in border_labels:
+            continue  # 跳过连接到边界的（真正的外部区域）
+        area = (labels == label_id).sum()
+        if area <= max_fill_area:
+            grid[labels == label_id] = 0.0
+            filled_count += area
+    print(f"  填充了 {filled_count:,} 个孤立障碍格子 ({num_labels - len(border_labels)} 个内部区域)")
     
     # 统计
     passable = np.sum(grid == 0.0)

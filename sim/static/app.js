@@ -31,6 +31,27 @@ let currentFps = 0;
 let wsMessageCount = 0;
 let lastWsCountTime = Date.now();
 let wsHz = 0;
+let lastGlobalPathLen = 0;
+
+// Toast 通知
+function showToast(msg, duration = 2000) {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    container.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:9999;pointer-events:none;';
+    document.body.appendChild(container);
+  }
+  const toast = document.createElement('div');
+  toast.textContent = msg;
+  toast.style.cssText = 'background:rgba(0,200,100,0.9);color:#fff;padding:10px 24px;border-radius:8px;font:600 14px Inter,sans-serif;margin-bottom:8px;opacity:0;transition:opacity 0.3s;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+  container.appendChild(toast);
+  requestAnimationFrame(() => { toast.style.opacity = '1'; });
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
 
 // Canvas
 const canvas = document.getElementById('canvas');
@@ -617,7 +638,13 @@ function connectWS() {
     }
     if (data.trail) trail = data.trail;
     if (data.cilqr_traj) cilqrTraj = data.cilqr_traj;
-    if (data.global_path) globalPath = data.global_path;
+    if (data.global_path && data.global_path.length > 0) {
+      if (data.global_path.length !== lastGlobalPathLen) {
+        showToast(`✅ 全局路径规划成功 (${data.global_path.length} 个点)`);
+        lastGlobalPathLen = data.global_path.length;
+      }
+      globalPath = data.global_path;
+    }
   };
 
   ws.onclose = () => {
