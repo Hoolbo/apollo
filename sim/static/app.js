@@ -207,18 +207,86 @@ function drawVehicle() {
   // 画后车体框
   drawBodyRect(rx, ry, tr, p.L_r_body, p.W_r_body, '#ffaa00', 2);
 
-  // 中心连线 (前车→铰接→后车)
-  drawDashedLine(x, y, px, py, '#ffcc00', 1);
-  drawDashedLine(px, py, rx, ry, '#ffaa00', 1);
+  // ── 铰接装置：双杆 + 铰盘（匹配实车结构）──
+  // 杆间距（两根平行铝型材的横向间距，取车宽的 ~40%）
+  const barSpacing = p.W_f_body * 0.35;
+  const barWidth = 2.5;        // 杆粗细（屏幕像素）
+  const pivotRadius = barSpacing / 2;     // 铰盘直径 = 杆间距
+  const barExtendF = p.L_f * 0.45;  // 前车杆从车尾向后延伸的长度
+  const barExtendR = p.L_r * 0.45;  // 后车杆从车头向前延伸的长度
 
-  // 铰接点
+  // 前车后端边缘中心（车体后缘）
+  const fRearX = x - (p.L_f_body / 2) * cosF;
+  const fRearY = y - (p.L_f_body / 2) * sinF;
+
+  // 后车前端边缘中心（车体前缘）
+  const rFrontX = rx + (p.L_r_body / 2) * cosR;
+  const rFrontY = ry + (p.L_r_body / 2) * sinR;
+
+  // 法线方向（垂直于车身方向）
+  const nfx = -sinF, nfy = cosF;  // 前车法线
+  const nrx = -sinR, nry = cosR;  // 后车法线
+
+  // 前车两根杆：从车尾两侧延伸到铰接点
+  for (const sign of [-1, 1]) {
+    const startX = fRearX + sign * (barSpacing / 2) * nfx;
+    const startY = fRearY + sign * (barSpacing / 2) * nfy;
+    // 杆终点在铰接点附近（沿前车方向再往后延伸）
+    const endX = fRearX - barExtendF * cosF + sign * (barSpacing / 2) * nfx;
+    const endY = fRearY - barExtendF * sinF + sign * (barSpacing / 2) * nfy;
+
+    const [sx1, sy1] = worldToScreen(startX, startY);
+    const [sx2, sy2] = worldToScreen(endX, endY);
+    ctx.beginPath();
+    ctx.moveTo(sx1, sy1);
+    ctx.lineTo(sx2, sy2);
+    ctx.strokeStyle = '#aab';
+    ctx.lineWidth = barWidth;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+
+  // 后车两根杆：从车头两侧延伸到铰接点
+  for (const sign of [-1, 1]) {
+    const startX = rFrontX + sign * (barSpacing / 2) * nrx;
+    const startY = rFrontY + sign * (barSpacing / 2) * nry;
+    const endX = rFrontX + barExtendR * cosR + sign * (barSpacing / 2) * nrx;
+    const endY = rFrontY + barExtendR * sinR + sign * (barSpacing / 2) * nry;
+
+    const [sx1, sy1] = worldToScreen(startX, startY);
+    const [sx2, sy2] = worldToScreen(endX, endY);
+    ctx.beginPath();
+    ctx.moveTo(sx1, sy1);
+    ctx.lineTo(sx2, sy2);
+    ctx.strokeStyle = '#998';
+    ctx.lineWidth = barWidth;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+
+  // 铰盘（圆形转盘轴承）
   const [spx, spy] = worldToScreen(px, py);
+  const diskScreenR = Math.max(pivotRadius * camera.zoom, 4);
+  // 外圈
   ctx.beginPath();
-  ctx.arc(spx, spy, 4, 0, Math.PI * 2);
-  ctx.fillStyle = 'white';
+  ctx.arc(spx, spy, diskScreenR, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(40, 40, 50, 0.8)';
   ctx.fill();
-  ctx.strokeStyle = '#ffcc00';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#667';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // 内圈（轴承中心螺栓）
+  ctx.beginPath();
+  ctx.arc(spx, spy, diskScreenR * 0.3, 0, Math.PI * 2);
+  ctx.fillStyle = '#99a';
+  ctx.fill();
+  // 十字标记
+  const cr = diskScreenR * 0.2;
+  ctx.beginPath();
+  ctx.moveTo(spx - cr, spy); ctx.lineTo(spx + cr, spy);
+  ctx.moveTo(spx, spy - cr); ctx.lineTo(spx, spy + cr);
+  ctx.strokeStyle = '#556';
+  ctx.lineWidth = 1;
   ctx.stroke();
 
   // 航向箭头
@@ -732,6 +800,7 @@ function connectWS() {
   };
 
   ws.onmessage = (e) => {
+    if (pbLivePaused) return;  // 回放模式中，忽略实时数据
     handleStateData(JSON.parse(e.data));
   };
 
@@ -941,6 +1010,105 @@ window.emergencyStop = emergencyStop;
 
 
 // ═══════════════════════════════════════════════════════════
+//  键盘遥控（增量模式 + 铰接车运动学）
+//  W/↑=加速 S/↓=减速 A/←=左转(ω_γ>0) D/→=右转(ω_γ<0) Space=归零
+//  控制量: (v_cmd, ω_γ) → 后端做 Ackermann 逆解
+// ═══════════════════════════════════════════════════════════
+
+const KB_MAX_SPEED = 1.5;       // 最大速度 m/s
+const KB_SPEED_STEP = 0.1;      // 每按一次增减量 m/s
+const KB_OMEGA_GAMMA = 0.5;     // 铰接角变化率 rad/s（按住时持续施加）
+const KB_SEND_INTERVAL = 100;   // ms (10Hz)
+
+let kbKeys = new Set();
+let kbTimer = null;
+let kbActive = false;
+let kbSpeed = 0;
+
+function kbSendCmd() {
+  let og = 0;  // omega_gamma
+  if (kbKeys.has('a') || kbKeys.has('arrowleft'))  og += KB_OMEGA_GAMMA;
+  if (kbKeys.has('d') || kbKeys.has('arrowright')) og -= KB_OMEGA_GAMMA;
+
+  fetch('/api/keyboard_ctrl', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ v_cmd: kbSpeed, omega_gamma: og })
+  }).catch(() => {});
+}
+
+function kbStartLoop() {
+  if (!kbTimer) {
+    kbActive = true;
+    kbTimer = setInterval(kbSendCmd, KB_SEND_INTERVAL);
+  }
+}
+
+function kbStopLoop() {
+  if (kbTimer && kbKeys.size === 0 && kbSpeed === 0) {
+    clearInterval(kbTimer);
+    kbTimer = null;
+    kbActive = false;
+  }
+}
+
+function kbUpdateIndicator() {
+  const el = document.getElementById('kb-indicator');
+  if (!el) return;
+  if (kbActive || kbSpeed !== 0) {
+    el.style.display = 'inline-block';
+    el.textContent = `🎮 遥控 ${kbSpeed.toFixed(1)} m/s`;
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  const key = e.key.toLowerCase();
+
+  if (['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' '].includes(key)) {
+    e.preventDefault();
+
+    if (key === ' ') {
+      kbSpeed = 0;
+      kbSendCmd();
+      kbUpdateIndicator();
+      kbStopLoop();
+      return;
+    }
+
+    // 速度增量（仅首次按下）
+    if (!e.repeat) {
+      if (key === 'w' || key === 'arrowup') {
+        kbSpeed = Math.min(kbSpeed + KB_SPEED_STEP, KB_MAX_SPEED);
+        kbSpeed = Math.round(kbSpeed * 10) / 10;
+      } else if (key === 's' || key === 'arrowdown') {
+        kbSpeed = Math.max(kbSpeed - KB_SPEED_STEP, -KB_MAX_SPEED);
+        kbSpeed = Math.round(kbSpeed * 10) / 10;
+      }
+    }
+
+    // 转向键持续按住
+    if (['a','d','arrowleft','arrowright'].includes(key)) {
+      kbKeys.add(key);
+    }
+
+    kbStartLoop();
+    kbSendCmd();
+    kbUpdateIndicator();
+  }
+});
+
+document.addEventListener('keyup', (e) => {
+  const key = e.key.toLowerCase();
+  kbKeys.delete(key);
+  kbStopLoop();
+  kbUpdateIndicator();
+});
+
+
+// ═══════════════════════════════════════════════════════════
 //  录包 & 回放
 // ═══════════════════════════════════════════════════════════
 
@@ -1030,6 +1198,14 @@ function loadRecording(filename) {
       pbLivePaused = true;
       if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
 
+      // 清除当前界面数据，避免与回放帧重叠
+      trail = [];
+      cilqrTraj = [];
+      globalPath = [];
+      goalPos = null;
+      vehicle = { x: 0, y: 0, theta: 0, gamma: 0, speed: 0 };
+      controlCmd = { v_front: 0, delta_front_deg: 0, v_rear: 0, delta_rear_deg: 0, timestamp: 0 };
+
       // 显示回放条
       const bar = document.getElementById('playback-bar');
       bar.style.display = 'flex';
@@ -1106,6 +1282,13 @@ function playbackStop() {
   pbData = null;
   if (pbTimer) { clearInterval(pbTimer); pbTimer = null; }
   document.getElementById('playback-bar').style.display = 'none';
+
+  // 清除回放残留数据
+  trail = [];
+  cilqrTraj = [];
+  globalPath = [];
+  goalPos = null;
+  vehicle = { x: 0, y: 0, theta: 0, gamma: 0, speed: 0 };
 
   // 恢复实时数据
   pbLivePaused = false;
