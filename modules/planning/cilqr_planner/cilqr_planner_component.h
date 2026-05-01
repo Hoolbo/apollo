@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <chrono>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -91,6 +92,7 @@ class CilqrPlannerComponent : public apollo::cyber::Component<> {
   std::string log_path_;
   std::ofstream log_file_;
   std::string cilqr_log_path_;
+  double last_ha_solve_ms_ = 0.0;  // Hybrid A* 最近一次求解时间
 
   // ── Cyber readers/writers ──
   std::shared_ptr<cyber::Reader<localization::LocalizationEstimate>>

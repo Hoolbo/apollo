@@ -22,6 +22,7 @@ let canFeedback = {
 };
 let hasChassisDetail = false;
 let moduleStatus = {};  // { gnss: true/false, localization: true/false, ... }
+let plannerStats = { solve_ms: 0, ha_solve_ms: 0, converged: false, dist_to_goal: 0, global_pts: 0 };
 
 // 视图状态
 let camera = { x: 0, y: 0, zoom: 5.0 };  // zoom = pixels per meter
@@ -31,7 +32,9 @@ let cameraStart = { x: 0, y: 0 };
 let followVehicle = true;
 let goalMode = false;
 let startMode = false;
+let obstacleMode = false;
 let goalPos = null;
+let placedObstacles = [];
 
 // 帧率统计
 let frameCount = 0;
@@ -590,6 +593,7 @@ function render() {
   drawPolyline(globalPath, '#ff9900', 2, true);
   drawCilqrBand(cilqrTraj);
   drawGoal();
+  drawObstacles();
   drawVehicle();
 
   // 拖拽设方向时画箭头预览
@@ -695,6 +699,14 @@ function updatePanel() {
 
   updateControlPanel();
   updateModuleButtons();
+
+  // 规划统计
+  document.getElementById('val-cilqr-ms').textContent = plannerStats.solve_ms.toFixed(1);
+  document.getElementById('val-ha-ms').textContent = plannerStats.ha_solve_ms.toFixed(1);
+  const convEl = document.getElementById('val-converge');
+  convEl.textContent = plannerStats.converged ? 'YES' : 'NO';
+  convEl.className = 'tag' + (plannerStats.converged ? ' tag-ok' : ' tag-warn');
+  document.getElementById('val-dist-goal').textContent = plannerStats.dist_to_goal.toFixed(1);
 }
 
 function updateModuleButtons() {
@@ -784,6 +796,8 @@ function handleStateData(data) {
   if (data.control_cmd) controlCmd = data.control_cmd;
   if (data.can_feedback) canFeedback = data.can_feedback;
   if (data.module_status) moduleStatus = data.module_status;
+  if (data.obstacles) placedObstacles = data.obstacles;
+  if (data.planner_stats) plannerStats = data.planner_stats;
 }
 
 function connectWS() {
@@ -854,6 +868,20 @@ canvas.addEventListener('mousedown', (e) => {
       sx: e.offsetX, sy: e.offsetY,
       endSx: e.offsetX, endSy: e.offsetY,
     };
+    return;
+  }
+
+  if (obstacleMode && e.button === 0) {
+    const [wx, wy] = screenToWorld(e.offsetX, e.offsetY);
+    const obsLen = parseFloat(document.getElementById('obs-length').value) || 0.6;
+    const obsWid = parseFloat(document.getElementById('obs-width').value) || 0.6;
+    fetch('/api/obstacle/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ x: wx, y: wy, theta: 0, length: obsLen, width: obsWid }),
+    }).then(r => r.json()).then(d => {
+      if (d.obstacle) showToast(`🔶 障碍物 #${d.obstacle.id} 已放置`);
+    });
     return;
   }
 
@@ -964,17 +992,96 @@ function toggleModule(name) {
 function toggleGoalMode() {
   goalMode = !goalMode;
   startMode = false;
+  obstacleMode = false;
   canvas.classList.toggle('goal-mode', goalMode);
   document.getElementById('btn-goal').classList.toggle('active', goalMode);
   document.getElementById('btn-start').classList.remove('active');
+  document.getElementById('btn-obstacle').classList.remove('active');
 }
 
 function toggleStartMode() {
   startMode = !startMode;
   goalMode = false;
+  obstacleMode = false;
   canvas.classList.toggle('goal-mode', startMode);
   document.getElementById('btn-start').classList.toggle('active', startMode);
   document.getElementById('btn-goal').classList.remove('active');
+  document.getElementById('btn-obstacle').classList.remove('active');
+}
+
+function toggleObstacleMode() {
+  obstacleMode = !obstacleMode;
+  goalMode = false;
+  startMode = false;
+  canvas.classList.toggle('goal-mode', obstacleMode);
+  document.getElementById('btn-obstacle').classList.toggle('active', obstacleMode);
+  document.getElementById('btn-goal').classList.remove('active');
+  document.getElementById('btn-start').classList.remove('active');
+}
+
+function removeObstacle(id) {
+  fetch('/api/obstacle/remove', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id }),
+  }).then(r => r.json()).then(() => showToast(`障碍物 #${id} 已删除`));
+}
+
+function clearObstacles() {
+  fetch('/api/obstacle/clear', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  }).then(r => r.json()).then(d => showToast(`已清空 ${d.cleared} 个障碍物`));
+}
+
+function drawObstacles() {
+  for (const obs of placedObstacles) {
+    const [sx, sy] = worldToScreen(obs.x, obs.y);
+    const hl = obs.length / 2;
+    const hw = obs.width / 2;
+    const cos = Math.cos(obs.theta), sin = Math.sin(obs.theta);
+    const corners = [
+      [obs.x + hl*cos - hw*sin, obs.y + hl*sin + hw*cos],
+      [obs.x + hl*cos + hw*sin, obs.y + hl*sin - hw*cos],
+      [obs.x - hl*cos + hw*sin, obs.y - hl*sin - hw*cos],
+      [obs.x - hl*cos - hw*sin, obs.y - hl*sin + hw*cos],
+    ];
+    ctx.save();
+    ctx.beginPath();
+    corners.forEach((c, i) => {
+      const [sx, sy] = worldToScreen(c[0], c[1]);
+      if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+    });
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255, 50, 50, 0.4)';
+    ctx.fill();
+    ctx.strokeStyle = '#ff3333';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // ID label
+    ctx.fillStyle = '#ff3333';
+    ctx.font = '10px Inter';
+    ctx.textAlign = 'center';
+    ctx.fillText(`#${obs.id}`, sx, sy - (hw * camera.zoom + 6));
+    ctx.restore();
+  }
+  // 更新侧边栏障碍物列表
+  const listEl = document.getElementById('obstacle-list');
+  if (listEl) {
+    if (placedObstacles.length === 0) {
+      listEl.innerHTML = '<span style="color:#556">无障碍物</span>';
+    } else {
+      listEl.innerHTML = placedObstacles.map(o =>
+        `<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0;border-bottom:1px solid #223">`+
+        `<span style="color:#ff3333">#${o.id}</span> `+
+        `<span style="color:#aab">(${o.x.toFixed(1)}, ${o.y.toFixed(1)})</span> `+
+        `<span style="color:#778">${o.length}×${o.width}</span> `+
+        `<button onclick="removeObstacle(${o.id})" style="background:none;border:none;color:#f66;cursor:pointer;font-size:0.7rem">✖</button>`+
+        `</div>`
+      ).join('');
+    }
+  }
 }
 
 function toggleFollow() {
@@ -1000,6 +1107,40 @@ function emergencyStop() {
     .catch(e => showToast('❌ 急停发送失败', 3000));
 }
 
+// 数值设起点
+function submitNumericStart() {
+  const x = parseFloat(document.getElementById('num-start-x').value) || 0;
+  const y = parseFloat(document.getElementById('num-start-y').value) || 0;
+  const thetaDeg = parseFloat(document.getElementById('num-start-theta').value) || 0;
+  const theta = thetaDeg * Math.PI / 180;
+  fetch('/api/start', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ x, y, theta }),
+  }).then(r => r.json()).then(d => {
+    trail = [];
+    showToast(`📍 起点已设: (${x.toFixed(1)}, ${y.toFixed(1)}, ${thetaDeg.toFixed(1)}°)`);
+    console.log('Numeric start set:', d);
+  });
+}
+
+// 数值设目标点
+function submitNumericGoal() {
+  const x = parseFloat(document.getElementById('num-goal-x').value) || 0;
+  const y = parseFloat(document.getElementById('num-goal-y').value) || 0;
+  const thetaDeg = parseFloat(document.getElementById('num-goal-theta').value) || 0;
+  const theta = thetaDeg * Math.PI / 180;
+  goalPos = { x, y, theta };
+  fetch('/api/goal', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ x, y, theta }),
+  }).then(r => r.json()).then(d => {
+    showToast(`🎯 目标已设: (${x.toFixed(1)}, ${y.toFixed(1)}, ${thetaDeg.toFixed(1)}°)`);
+    console.log('Numeric goal set:', d);
+  });
+}
+
 // 暴露到全局
 window.toggleModule = toggleModule;
 window.toggleGoalMode = toggleGoalMode;
@@ -1007,6 +1148,8 @@ window.toggleStartMode = toggleStartMode;
 window.toggleFollow = toggleFollow;
 window.resetView = resetView;
 window.emergencyStop = emergencyStop;
+window.submitNumericStart = submitNumericStart;
+window.submitNumericGoal = submitNumericGoal;
 
 
 // ═══════════════════════════════════════════════════════════
@@ -1189,6 +1332,16 @@ function loadRecording(filename) {
   fetch(`/api/record/${filename}`)
     .then(r => r.json())
     .then(data => {
+      // ── 预处理压缩录包：展开 "__same__" 标记 ──
+      let lastGP = [];
+      for (const frame of data.frames) {
+        if (frame.global_path === '__same__') {
+          frame.global_path = lastGP;
+        } else if (Array.isArray(frame.global_path)) {
+          lastGP = frame.global_path;
+        }
+      }
+
       pbData = data;
       pbIndex = 0;
       pbPlaying = false;

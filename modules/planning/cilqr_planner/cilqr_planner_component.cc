@@ -251,7 +251,8 @@ bool CilqrPlannerComponent::Init() {
     if (log_file_.is_open()) {
       log_file_
           << "timestamp_s,x,y,theta_deg,gamma_deg,goal_x,goal_y,dist_to_goal,"
-             "J_total,converged,solve_ms,trj_len,v0_cmd,global_pts\n";
+             "J_total,converged,solve_ms,trj_len,v0_cmd,global_pts,"
+             "ha_solve_ms\n";
       AINFO << "CSV log: " << log_path_;
     }
     cilqr_log_path_ =
@@ -279,10 +280,16 @@ bool CilqrPlannerComponent::ReplanGlobal(
   std::array<double, 4> start = {sx, sy, stheta, sgamma};
   std::array<double, 4> goal = {goal_x_, goal_y_, goal_theta_, 0.0};
   std::vector<::Point> pts;
+
+  auto t0 = std::chrono::steady_clock::now();
   bool ok = articulated_hybrid_astar_plan(
       bitmap_map_, start, goal, ha_params_, pts);
+  auto t1 = std::chrono::steady_clock::now();
+  double ha_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
+  last_ha_solve_ms_ = ha_ms;
+
   if (!ok || pts.empty()) {
-    AWARN << "Hybrid A* failed, fallback to straight line.";
+    AWARN << "Hybrid A* failed (" << ha_ms << " ms), fallback to straight line.";
     pts.clear();
     double dx = goal_x_ - sx, dy = goal_y_ - sy;
     double dist = std::hypot(dx, dy);
@@ -294,7 +301,8 @@ bool CilqrPlannerComponent::ReplanGlobal(
     }
   }
   global_plan_.set_plan(pts);
-  AINFO << "Global plan: " << pts.size() << " waypoints";
+  AINFO << "Global plan: " << pts.size() << " waypoints, Hybrid A* solve: "
+        << ha_ms << " ms";
 
   // Publish global path as RoutingResponse for Dreamview+ visualization
   if (routing_writer_ != nullptr) {
@@ -525,7 +533,8 @@ void CilqrPlannerComponent::PlanAndPublish() {
               << "," << dist_to_goal << "," << solution.final_cost << ","
               << (solution.converged ? 1 : 0) << ","
               << solution.solve_time_ms << "," << trj_states.size()
-              << "," << v0 << "," << gpts << "\n";
+              << "," << v0 << "," << gpts << "," << last_ha_solve_ms_
+              << "\n";
     log_file_.flush();
   }
 }

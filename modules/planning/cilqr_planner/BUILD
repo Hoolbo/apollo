@@ -57,7 +57,10 @@ apollo_cc_library(
 
 apollo_component(
     name = "libcilqr_planner_component.so",
-    deps = [":cilqr_planner_component_lib"],
+    deps = [
+        ":cilqr_planner_component_lib",
+        "//modules/planning/cilqr_planner/proto:cilqr_planner_conf_cc_proto",
+    ],
 )
 
 filegroup(

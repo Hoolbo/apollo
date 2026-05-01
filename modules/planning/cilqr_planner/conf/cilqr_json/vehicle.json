@@ -21,6 +21,6 @@
     "gamma_dot_min": -0.8,
     "acc_max": 3.0,
     "acc_min": -3.0,
-    "v_max": 10.0,
+    "v_max": 1.0,
     "v_min": -1.0
 }

@@ -60,6 +60,9 @@
       <button id="btn-follow" class="tool-btn active" onclick="toggleFollow()">
         📍 跟随车辆
       </button>
+      <button id="btn-obstacle" class="tool-btn" onclick="toggleObstacleMode()">
+        🔶 放置障碍
+      </button>
       <div class="separator"></div>
       <button id="btn-record" class="tool-btn" onclick="toggleRecord()">
         ⏺ 录包
@@ -155,6 +158,78 @@
           <div class="stat">
             <label>距离</label>
             <span id="val-dist">--</span>
+            <small>m</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- 数值设置起点 -->
+      <div class="panel">
+        <h3>📍 数值设起点</h3>
+        <div style="display:flex;flex-direction:column;gap:4px;font-size:0.78rem">
+          <div style="display:flex;align-items:center;gap:4px">
+            <label style="color:#aab;min-width:18px">X</label>
+            <input id="num-start-x" type="number" step="0.1" value="-160" style="flex:1;background:#1a1f30;color:#fff;border:1px solid #334;border-radius:3px;padding:3px 6px;font-size:0.78rem">
+            <small style="color:#667">m</small>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px">
+            <label style="color:#aab;min-width:18px">Y</label>
+            <input id="num-start-y" type="number" step="0.1" value="-11" style="flex:1;background:#1a1f30;color:#fff;border:1px solid #334;border-radius:3px;padding:3px 6px;font-size:0.78rem">
+            <small style="color:#667">m</small>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px">
+            <label style="color:#aab;min-width:18px">θ</label>
+            <input id="num-start-theta" type="number" step="1" value="6" style="flex:1;background:#1a1f30;color:#fff;border:1px solid #334;border-radius:3px;padding:3px 6px;font-size:0.78rem">
+            <small style="color:#667">°</small>
+          </div>
+          <button onclick="submitNumericStart()" style="margin-top:2px;background:linear-gradient(135deg,#2266cc,#1155aa);color:#fff;border:none;border-radius:4px;padding:5px 0;cursor:pointer;font-size:0.78rem;font-weight:600;transition:opacity 0.2s" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">确定起点</button>
+        </div>
+      </div>
+
+      <!-- 数值设置目标点 -->
+      <div class="panel">
+        <h3>🎯 数值设目标</h3>
+        <div style="display:flex;flex-direction:column;gap:4px;font-size:0.78rem">
+          <div style="display:flex;align-items:center;gap:4px">
+            <label style="color:#aab;min-width:18px">X</label>
+            <input id="num-goal-x" type="number" step="0.1" value="-160" style="flex:1;background:#1a1f30;color:#fff;border:1px solid #334;border-radius:3px;padding:3px 6px;font-size:0.78rem">
+            <small style="color:#667">m</small>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px">
+            <label style="color:#aab;min-width:18px">Y</label>
+            <input id="num-goal-y" type="number" step="0.1" value="-11" style="flex:1;background:#1a1f30;color:#fff;border:1px solid #334;border-radius:3px;padding:3px 6px;font-size:0.78rem">
+            <small style="color:#667">m</small>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px">
+            <label style="color:#aab;min-width:18px">θ</label>
+            <input id="num-goal-theta" type="number" step="1" value="0" style="flex:1;background:#1a1f30;color:#fff;border:1px solid #334;border-radius:3px;padding:3px 6px;font-size:0.78rem">
+            <small style="color:#667">°</small>
+          </div>
+          <button onclick="submitNumericGoal()" style="margin-top:2px;background:linear-gradient(135deg,#cc4422,#aa3311);color:#fff;border:none;border-radius:4px;padding:5px 0;cursor:pointer;font-size:0.78rem;font-weight:600;transition:opacity 0.2s" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">确定目标</button>
+        </div>
+      </div>
+
+      <!-- MPC 控制指令面板 -->
+      <div class="panel">
+        <h3>📊 规划统计</h3>
+        <div class="stat-grid">
+          <div class="stat">
+            <label>CILQR</label>
+            <span id="val-cilqr-ms">--</span>
+            <small>ms</small>
+          </div>
+          <div class="stat">
+            <label>H-A*</label>
+            <span id="val-ha-ms">--</span>
+            <small>ms</small>
+          </div>
+          <div class="stat">
+            <label>收敛</label>
+            <span id="val-converge" class="tag">--</span>
+          </div>
+          <div class="stat">
+            <label>距终点</label>
+            <span id="val-dist-goal">--</span>
             <small>m</small>
           </div>
         </div>
@@ -258,6 +333,18 @@
       </div>
 
       <div class="panel">
+        <h3>🔶 障碍物 <button onclick="clearObstacles()" style="float:right;background:#f44;color:#fff;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:0.7rem">清空</button></h3>
+        <div style="font-size:0.75rem;color:#8899aa;margin-bottom:6px">点击地图放置，默认0.6×0.6m</div>
+        <div style="display:flex;gap:4px;margin-bottom:6px">
+          <label style="font-size:0.7rem;color:#aab">长:</label>
+          <input id="obs-length" type="number" value="0.6" step="0.1" min="0.1" max="5" style="width:45px;background:#1a1f30;color:#fff;border:1px solid #334;border-radius:3px;padding:1px 4px;font-size:0.75rem">
+          <label style="font-size:0.7rem;color:#aab">宽:</label>
+          <input id="obs-width" type="number" value="0.6" step="0.1" min="0.1" max="5" style="width:45px;background:#1a1f30;color:#fff;border:1px solid #334;border-radius:3px;padding:1px 4px;font-size:0.75rem">
+        </div>
+        <div id="obstacle-list" style="font-size:0.72rem;max-height:120px;overflow-y:auto"></div>
+      </div>
+
+      <div class="panel">
         <h3>图例</h3>
         <div class="legend">
           <div class="legend-item"><span class="swatch" style="background:#ffcc00"></span> 车体</div>
@@ -265,6 +352,7 @@
           <div class="legend-item"><span class="swatch" style="background:#ff9900"></span> 全局路径</div>
           <div class="legend-item"><span class="swatch" style="background:#00cc66; height:8px"></span> CILQR 轨迹</div>
           <div class="legend-item"><span class="swatch" style="background:#ff4444"></span> 目标点</div>
+          <div class="legend-item"><span class="swatch" style="background:#ff3333"></span> 障碍物</div>
         </div>
       </div>
     </aside>

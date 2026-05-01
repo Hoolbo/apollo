@@ -17,6 +17,7 @@ import subprocess
 import sys
 import threading
 import time
+import glob as glob_module
 from pathlib import Path
 
 import aiohttp
@@ -30,6 +31,7 @@ from modules.common_msgs.planning_msgs.planning_pb2 import ADCTrajectory
 from modules.common_msgs.planning_msgs.planning_command_pb2 import PlanningCommand
 from modules.common_msgs.chassis_msgs.chassis_pb2 import Chassis
 from modules.common_msgs.control_msgs.control_cmd_pb2 import ControlCommand
+from modules.common_msgs.prediction_msgs.prediction_obstacle_pb2 import PredictionObstacles
 
 try:
     from modules.canbus_vehicle.articulated.proto.articulated_pb2 import Articulated
@@ -55,6 +57,12 @@ cilqr_traj = []
 global_path = []
 vehicle_params = None
 map_cache = None
+placed_obstacles = []  # [{"id":int, "x":f, "y":f, "theta":f, "length":f, "width":f}]
+planner_stats = {
+    "solve_ms": 0.0, "ha_solve_ms": 0.0,
+    "converged": False, "J_total": 0.0,
+    "dist_to_goal": 0.0, "global_pts": 0,
+}
 
 control_cmd_state = {
     "v_front": 0.0, "delta_front_deg": 0.0,
@@ -152,6 +160,7 @@ is_recording = False
 record_frames = []
 record_start_time = 0.0
 record_filename = ""
+_rec_prev_global_path = None   # 录包去重：上一帧的 global_path
 
 def build_state_snapshot():
     """构建当前帧的状态快照"""
@@ -167,6 +176,8 @@ def build_state_snapshot():
                 "rear": dict(can_feedback_state["rear"]),
             },
             "module_status": get_module_status(),
+            "obstacles": list(placed_obstacles),
+            "planner_stats": dict(planner_stats),
         }
 
 
@@ -354,9 +365,87 @@ def load_map_data():
 cyber_node = None
 goal_writer = None
 ctrl_writer = None
+prediction_writer = None
+
+# ── CILQR CSV 日志监控 ──
+_CSV_HEADER = []  # CSV列名列表
+
+def _find_latest_csv():
+    """查找 /tmp/planner/ 下最新的 cilqr_planner_*.csv"""
+    files = sorted(glob_module.glob("/tmp/planner/cilqr_planner_*.csv"))
+    return files[-1] if files else None
+
+def csv_monitor_thread():
+    """后台线程：实时监控 CILQR CSV 日志，解析 solve_ms / ha_solve_ms 等字段"""
+    global _CSV_HEADER
+    current_file = None
+    fh = None
+    print("  ✓ CSV monitor thread started")
+
+    while True:
+        latest = _find_latest_csv()
+        # 如果文件变了（新启动了CILQR），重新打开
+        if latest and latest != current_file:
+            if fh:
+                fh.close()
+            current_file = latest
+            fh = open(current_file, 'r')
+            header_line = fh.readline().strip()
+            if header_line:
+                _CSV_HEADER = header_line.split(',')
+            print(f"  ✓ Monitoring CSV: {current_file} ({len(_CSV_HEADER)} cols)")
+
+        if fh:
+            line = fh.readline()
+            while line:
+                line = line.strip()
+                if line and _CSV_HEADER:
+                    parts = line.split(',')
+                    if len(parts) >= len(_CSV_HEADER):
+                        try:
+                            row = dict(zip(_CSV_HEADER, parts))
+                            with state_lock:
+                                planner_stats["solve_ms"] = float(row.get("solve_ms", 0))
+                                planner_stats["ha_solve_ms"] = float(row.get("ha_solve_ms", 0))
+                                planner_stats["converged"] = row.get("converged", "0") == "1"
+                                planner_stats["J_total"] = float(row.get("J_total", 0))
+                                planner_stats["dist_to_goal"] = float(row.get("dist_to_goal", 0))
+                                planner_stats["global_pts"] = int(float(row.get("global_pts", 0)))
+                        except (ValueError, KeyError):
+                            pass
+                line = fh.readline()
+
+        time.sleep(0.05)  # 50ms 轮询
+
+def publish_obstacles():
+    """以 1Hz 持续发布当前障碍物列表到 /apollo/prediction"""
+    while True:
+        time.sleep(1.0)
+        if prediction_writer and placed_obstacles:
+            msg = PredictionObstacles()
+            msg.header.timestamp_sec = cyber_time.Time.now().to_sec()
+            msg.header.module_name = "web_obstacle_publisher"
+            with state_lock:
+                for obs in placed_obstacles:
+                    po = msg.prediction_obstacle.add()
+                    po.perception_obstacle.id = obs["id"]
+                    po.perception_obstacle.position.x = obs["x"]
+                    po.perception_obstacle.position.y = obs["y"]
+                    po.perception_obstacle.theta = obs["theta"]
+                    po.perception_obstacle.length = obs["length"]
+                    po.perception_obstacle.width = obs["width"]
+                    po.perception_obstacle.type = 5  # UNKNOWN
+                    # 构建一条静止的预测轨迹（1个点）
+                    traj = po.trajectory.add()
+                    tp = traj.trajectory_point.add()
+                    tp.path_point.x = obs["x"]
+                    tp.path_point.y = obs["y"]
+                    tp.path_point.theta = obs["theta"]
+                    tp.relative_time = 0.0
+            prediction_writer.write(msg)
 
 def cyber_thread_func():
-    global cyber_node, goal_writer, ctrl_writer
+    global cyber_node, goal_writer, ctrl_writer, prediction_writer
     cyber.init()
     cyber_node = cyber.Node("web_visualizer")
     cyber_node.create_reader("/apollo/localization/pose", LocalizationEstimate, on_localization)
@@ -370,7 +459,11 @@ def cyber_thread_func():
         print("  ✓ Subscribed to chassis_detail")
     goal_writer = cyber_node.create_writer("/apollo/planning/command", PlanningCommand)
     ctrl_writer = cyber_node.create_writer("/apollo/control", ControlCommand)
+    prediction_writer = cyber_node.create_writer("/apollo/prediction", PredictionObstacles)
     print("  ✓ Cyber RT initialized")
+    # 启动障碍物持续发布线程
+    threading.Thread(target=publish_obstacles, daemon=True).start()
+    threading.Thread(target=csv_monitor_thread, daemon=True).start()
     while True:
         time.sleep(1)
 
@@ -401,13 +494,32 @@ async def ws_handler(request):
 
 async def broadcast_loop():
     """20Hz 广播 + 录包采集"""
-    global is_recording, record_frames
+    global is_recording, record_frames, _rec_prev_global_path
     while True:
         snapshot = build_state_snapshot()
         with record_lock:
             if is_recording:
                 t = time.time() - record_start_time
-                record_frames.append({"t": round(t, 3), **snapshot})
+                # ── 录包压缩：减少 global_path 和 trail 冗余 ──
+                rec_frame = {
+                    "t": round(t, 3),
+                    "vehicle": snapshot["vehicle"],
+                    "trail": snapshot["trail"][-20:],  # 只保留最近 20 个轨迹点
+                    "cilqr_traj": snapshot["cilqr_traj"],
+                    "control_cmd": snapshot["control_cmd"],
+                    "can_feedback": snapshot["can_feedback"],
+                    "module_status": snapshot["module_status"],
+                    "obstacles": snapshot["obstacles"],
+                    "planner_stats": snapshot["planner_stats"],
+                }
+                # global_path 只在变化时存储完整数据
+                cur_gp = snapshot["global_path"]
+                if cur_gp == _rec_prev_global_path:
+                    rec_frame["global_path"] = "__same__"
+                else:
+                    rec_frame["global_path"] = cur_gp
+                    _rec_prev_global_path = cur_gp
+                record_frames.append(rec_frame)
         if ws_connected:
             data = json.dumps(snapshot)
             dead = []
@@ -562,10 +674,11 @@ async def api_module(request):
         return web.json_response({"error": f"unknown: {name}"}, status=400)
 
 async def api_record_start(request):
-    global is_recording, record_start_time, record_filename
+    global is_recording, record_start_time, record_filename, _rec_prev_global_path
     with record_lock:
         is_recording = True
         record_frames.clear()
+        _rec_prev_global_path = None   # 重置去重状态
         record_start_time = time.time()
         ts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
         record_filename = f"rec_{ts}.json"
@@ -603,6 +716,45 @@ async def api_records_delete(request):
         fpath.unlink()
         return web.json_response({"status": "ok"})
     return web.json_response({"error": "not found"}, status=404)
+
+_obstacle_id_counter = 0
+
+async def api_obstacle_add(request):
+    """添加障碍物：{x, y, theta(可选), length(可选), width(可选)}"""
+    global _obstacle_id_counter
+    body = await request.json()
+    _obstacle_id_counter += 1
+    obs = {
+        "id": _obstacle_id_counter,
+        "x": body.get('x', 0.0),
+        "y": body.get('y', 0.0),
+        "theta": body.get('theta', 0.0),
+        "length": body.get('length', 0.6),
+        "width": body.get('width', 0.6),
+    }
+    with state_lock:
+        placed_obstacles.append(obs)
+    print(f"  🔶 Obstacle added: id={obs['id']} ({obs['x']:.1f}, {obs['y']:.1f}) {obs['length']}×{obs['width']}m")
+    return web.json_response({"status": "ok", "obstacle": obs})
+
+async def api_obstacle_remove(request):
+    """删除指定ID的障碍物：{id: int}"""
+    body = await request.json()
+    obs_id = body.get('id', -1)
+    with state_lock:
+        before = len(placed_obstacles)
+        placed_obstacles[:] = [o for o in placed_obstacles if o["id"] != obs_id]
+        removed = before - len(placed_obstacles)
+    print(f"  🔶 Obstacle removed: id={obs_id} ({'ok' if removed else 'not found'})")
+    return web.json_response({"status": "ok", "removed": removed})
+
+async def api_obstacle_clear(request):
+    """清空所有障碍物"""
+    with state_lock:
+        count = len(placed_obstacles)
+        placed_obstacles.clear()
+    print(f"  🔶 All obstacles cleared ({count})")
+    return web.json_response({"status": "ok", "cleared": count})
 
 async def index_handler(request):
     return web.FileResponse(STATIC_DIR / 'index.html')
@@ -646,6 +798,9 @@ async def main():
     app.router.add_post('/api/record/start', api_record_start)
     app.router.add_post('/api/record/stop', api_record_stop)
     app.router.add_post('/api/records/delete', api_records_delete)
+    app.router.add_post('/api/obstacle/add', api_obstacle_add)
+    app.router.add_post('/api/obstacle/remove', api_obstacle_remove)
+    app.router.add_post('/api/obstacle/clear', api_obstacle_clear)
     app.router.add_get('/', index_handler)
     app.router.add_static('/', STATIC_DIR)
 
