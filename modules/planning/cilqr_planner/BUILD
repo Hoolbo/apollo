@@ -1,24 +1,12 @@
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_proto_library")
-load("@rules_proto//proto:defs.bzl", "proto_library")
-load("//tools/install:install.bzl", "install", "install_src_files")
+load("//tools:apollo_package.bzl", "apollo_cc_library", "apollo_component", "apollo_package")
+load("//tools:cpplint.bzl", "cpplint")
+load("@rules_cc//cc:defs.bzl", "cc_library")
 
 package(default_visibility = ["//visibility:public"])
 
 CILQR_COPTS = ['-DMODULE_NAME=\\"cilqr_planner\\"']
 
-# ── Proto ──
-
-proto_library(
-    name = "cilqr_planner_conf_proto",
-    srcs = ["proto/cilqr_planner_conf.proto"],
-)
-
-cc_proto_library(
-    name = "cilqr_planner_conf_cc_proto",
-    deps = [":cilqr_planner_conf_proto"],
-)
-
-# ── CILQR algorithm library (ported from planner/, no Apollo deps) ──
+# ── CILQR algorithm library (no Apollo deps) ──
 
 cc_library(
     name = "cilqr_lib",
@@ -43,7 +31,7 @@ cc_library(
 
 # ── Component library ──
 
-cc_library(
+apollo_cc_library(
     name = "cilqr_planner_component_lib",
     srcs = ["cilqr_planner_component.cc"],
     hdrs = ["cilqr_planner_component.h"],
@@ -54,7 +42,7 @@ cc_library(
     alwayslink = True,
     deps = [
         ":cilqr_lib",
-        ":cilqr_planner_conf_cc_proto",
+        "//modules/planning/cilqr_planner/proto:cilqr_planner_conf_cc_proto",
         "//cyber",
         "//modules/common_msgs/chassis_msgs:chassis_cc_proto",
         "//modules/common_msgs/localization_msgs:localization_cc_proto",
@@ -67,14 +55,10 @@ cc_library(
 
 # ── Shared library for Cyber component loading ──
 
-cc_binary(
+apollo_component(
     name = "libcilqr_planner_component.so",
-    linkshared = True,
-    linkstatic = True,
     deps = [":cilqr_planner_component_lib"],
 )
-
-# ── Runtime data ──
 
 filegroup(
     name = "runtime_data",
@@ -86,40 +70,6 @@ filegroup(
     ]) + ["cyberfile.xml"],
 )
 
-# ── Install targets (required by buildtool) ──
+apollo_package()
 
-install(
-    name = "_install_lib",
-    targets = [":libcilqr_planner_component.so"],
-    data = ["cyberfile.xml"],
-    library_dest = "lib/modules/planning/cilqr_planner",
-    type = "neo",
-    package_path = "modules/planning/cilqr_planner",
-    visibility = ["//visibility:public"],
-)
-
-install(
-    name = "_install_data",
-    data = [":runtime_data"],
-    data_dest = "share/modules/planning/cilqr_planner",
-    type = "neo",
-    package_path = "modules/planning/cilqr_planner",
-    visibility = ["//visibility:public"],
-)
-
-install(
-    name = "install",
-    deps = [":_install_lib", ":_install_data"],
-    type = "neo",
-    package_path = "modules/planning/cilqr_planner",
-    visibility = ["//visibility:public"],
-)
-
-install_src_files(
-    name = "install_src",
-    src_dir = ["."],
-    dest = "src/modules/planning/cilqr_planner",
-    filter = "*",
-    type = "neo",
-    visibility = ["//visibility:public"],
-)
+cpplint()

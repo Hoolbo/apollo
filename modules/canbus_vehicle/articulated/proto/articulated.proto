@@ -21,10 +21,17 @@ message Articulated {
   // ---- Rear vehicle (Hunter SE) control commands ----
   optional ArticulatedRearMotionCommand273 rear_motion_command_273 = 7;
   optional ArticulatedRearControlModeSet1057 rear_control_mode_set_1057 = 8;
+  optional ArticulatedRearErrorClearCommand1089 rear_error_clear_command_1089 = 11;
 
   // ---- Rear vehicle (Hunter SE) feedback ----
   optional ArticulatedRearMotionFeedback545 rear_motion_feedback_545 = 9;
   optional ArticulatedRearChassisStatus529 rear_chassis_status_529 = 10;
+  optional ArticulatedRearMotorFeedbackHigh1_593 rear_motor_feedback_high_1_593 = 12;
+  optional ArticulatedRearMotorFeedbackHigh2_594 rear_motor_feedback_high_2_594 = 13;
+  optional ArticulatedRearMotorFeedbackHigh3_595 rear_motor_feedback_high_3_595 = 14;
+  optional ArticulatedRearMotorFeedbackLow1_609 rear_motor_feedback_low_1_609 = 15;
+  optional ArticulatedRearMotorFeedbackLow2_610 rear_motor_feedback_low_2_610 = 16;
+  optional ArticulatedRearMotorFeedbackLow3_611 rear_motor_feedback_low_3_611 = 17;
 }
 
 // =============================================================================
@@ -107,6 +114,17 @@ message ArticulatedRearControlModeSet1057 {
   optional ModeType mode_set = 1;
 }
 
+// ACU -> Rear error clear command (0x441 / 1089)
+message ArticulatedRearErrorClearCommand1089 {
+  enum ClearCodeType {
+    CLEAR_TURN_FAULT = 4;
+    CLEAR_RB_FAULT = 5;
+    CLEAR_LB_FAULT = 6;
+    CLEAR_ALL = 255;
+  }
+  optional ClearCodeType clear_code = 1;
+}
+
 // Rear motion feedback (0x221 / 545)
 message ArticulatedRearMotionFeedback545 {
   optional double linear_speed = 1;     // m/s, factor=0.001, signed
@@ -131,4 +149,46 @@ message ArticulatedRearChassisStatus529 {
   optional int32 fault_high = 4;
   optional int32 fault_low = 5;
   optional int32 message_count = 6;
+}
+
+// Rear motor feedback high 1 (0x251 / 593)
+message ArticulatedRearMotorFeedbackHigh1_593 {
+  optional int32 motor1_speed = 1;     // RPM, signed
+  optional double motor1_current = 2;  // A, factor=0.1, signed
+}
+
+// Rear motor feedback high 2 (0x252 / 594)
+message ArticulatedRearMotorFeedbackHigh2_594 {
+  optional int32 motor2_speed = 1;     // RPM, signed
+  optional double motor2_current = 2;  // A, factor=0.1, signed
+}
+
+// Rear motor feedback high 3 (0x253 / 595)
+message ArticulatedRearMotorFeedbackHigh3_595 {
+  optional int32 motor3_speed = 1;     // RPM, signed
+  optional double motor3_current = 2;  // A, factor=0.1, signed
+}
+
+// Rear motor feedback low 1 (0x261 / 609)
+message ArticulatedRearMotorFeedbackLow1_609 {
+  optional double driver_voltage_1 = 1;  // V, factor=0.1, unsigned
+  optional int32 driver_temp_1 = 2;      // degC, signed
+  optional int32 motor_temp_1 = 3;       // degC, signed
+  optional int32 driver_status_1 = 4;    // unsigned
+}
+
+// Rear motor feedback low 2 (0x262 / 610)
+message ArticulatedRearMotorFeedbackLow2_610 {
+  optional double driver_voltage_2 = 1;  // V, factor=0.1, unsigned
+  optional int32 driver_temp_2 = 2;      // degC, signed
+  optional int32 motor_temp_2 = 3;       // degC, signed
+  optional int32 driver_status_2 = 4;    // unsigned
+}
+
+// Rear motor feedback low 3 (0x263 / 611)
+message ArticulatedRearMotorFeedbackLow3_611 {
+  optional double driver_voltage_3 = 1;  // V, factor=0.1, unsigned
+  optional int32 driver_temp_3 = 2;      // degC, signed
+  optional int32 motor_temp_3 = 3;       // degC, signed
+  optional int32 driver_status_3 = 4;    // unsigned
 }

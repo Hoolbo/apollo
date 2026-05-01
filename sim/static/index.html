@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>铰接车实时可视化</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=7">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -21,17 +21,31 @@
       </div>
     </div>
     <div class="toolbar-center">
-      <button class="module-btn" data-module="sim" onclick="toggleModule('sim')">
-        <span class="dot"></span> 仿真
+      <!-- 感知层 -->
+      <button class="module-btn" data-module="gnss" onclick="toggleModule('gnss')">
+        <span class="dot"></span> GNSS
+      </button>
+      <button class="module-btn" data-module="localization" onclick="toggleModule('localization')">
+        <span class="dot"></span> 定位
+      </button>
+      <button class="module-btn" data-module="rear_loc" onclick="toggleModule('rear_loc')">
+        <span class="dot"></span> 后车定位
       </button>
       <button class="module-btn" data-module="canbus" onclick="toggleModule('canbus')">
         <span class="dot"></span> Canbus
       </button>
+      <div class="separator"></div>
+      <!-- 规控层 -->
       <button class="module-btn" data-module="cilqr" onclick="toggleModule('cilqr')">
         <span class="dot"></span> CILQR
       </button>
       <button class="module-btn" data-module="mpc" onclick="toggleModule('mpc')">
         <span class="dot"></span> MPC
+      </button>
+      <div class="separator"></div>
+      <!-- 仿真 -->
+      <button class="module-btn" data-module="sim" onclick="toggleModule('sim')">
+        <span class="dot"></span> 仿真
       </button>
       <div class="separator"></div>
       <button id="btn-start" class="tool-btn" onclick="toggleStartMode()">
@@ -46,11 +60,35 @@
       <button id="btn-follow" class="tool-btn active" onclick="toggleFollow()">
         📍 跟随车辆
       </button>
+      <div class="separator"></div>
+      <button id="btn-record" class="tool-btn" onclick="toggleRecord()">
+        ⏺ 录包
+      </button>
+      <button id="btn-recordings" class="tool-btn" onclick="showRecordings()">
+        📂 回放
+      </button>
+      <button id="btn-emergency" class="tool-btn emergency-btn" onclick="emergencyStop()">
+        🛑 急停
+      </button>
     </div>
     <div class="toolbar-right">
       <span id="ws-status" class="ws-badge disconnected">● 断开</span>
     </div>
   </header>
+
+  <!-- 回放控制条 -->
+  <div id="playback-bar" style="display:none; position:fixed; bottom:0; left:0; right:0; height:48px; background:rgba(20,25,40,0.95); border-top:1px solid #334; z-index:100; display:none; align-items:center; padding:0 16px; gap:12px;">
+    <button id="pb-play" onclick="playbackToggle()" style="background:none;border:none;color:#fff;font-size:1.2rem;cursor:pointer">▶</button>
+    <span id="pb-time" style="color:#8cf;font-family:monospace;min-width:100px">0:00 / 0:00</span>
+    <input id="pb-slider" type="range" min="0" max="100" value="0" style="flex:1;accent-color:#4cf" oninput="playbackSeek(this.value)">
+    <select id="pb-speed" onchange="playbackSpeed(this.value)" style="background:#223;color:#fff;border:1px solid #445;border-radius:4px;padding:2px 6px">
+      <option value="0.5">0.5x</option>
+      <option value="1" selected>1x</option>
+      <option value="2">2x</option>
+      <option value="5">5x</option>
+    </select>
+    <button onclick="playbackStop()" style="background:#f44;color:#fff;border:none;border-radius:4px;padding:4px 12px;cursor:pointer">✕ 退出回放</button>
+  </div>
 
   <!-- 主内容 -->
   <main>
@@ -92,6 +130,11 @@
             <span id="val-fps">--</span>
             <small>Hz</small>
           </div>
+          <div class="stat" style="grid-column: span 2">
+            <label>GNSS</label>
+            <span id="val-gnss-front" style="font-size:0.7rem">--</span>
+            <span id="val-gnss-rear" style="font-size:0.7rem">--</span>
+          </div>
         </div>
       </div>
 
@@ -116,6 +159,103 @@
         </div>
       </div>
 
+      <!-- MPC 控制指令面板 -->
+      <div class="panel panel-control">
+        <h3>🎮 MPC 指令</h3>
+        <div class="dual-column">
+          <div class="sub-panel">
+            <h4>前车</h4>
+            <div class="stat-row">
+              <label>速度</label>
+              <span id="val-cmd-vf">--</span>
+              <small>m/s</small>
+            </div>
+            <div class="stat-row">
+              <label>转角</label>
+              <span id="val-cmd-df">--</span>
+              <small>°</small>
+            </div>
+          </div>
+          <div class="sub-panel">
+            <h4>后车</h4>
+            <div class="stat-row">
+              <label>速度</label>
+              <span id="val-cmd-vr">--</span>
+              <small>m/s</small>
+            </div>
+            <div class="stat-row">
+              <label>转角</label>
+              <span id="val-cmd-dr">--</span>
+              <small>°</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 前车 CAN 反馈面板 -->
+      <div class="panel panel-can">
+        <h3>🔧 前车 CAN</h3>
+        <div class="stat-row">
+          <label>模式</label>
+          <span id="val-f-mode" class="tag">--</span>
+        </div>
+        <div class="stat-row">
+          <label>车速</label>
+          <span id="val-f-speed">--</span>
+          <small>km/h</small>
+        </div>
+        <div class="stat-row">
+          <label>EPS</label>
+          <span id="val-f-eps">--</span>
+          <small>°</small>
+        </div>
+        <div class="stat-row">
+          <label>档位</label>
+          <span id="val-f-gear" class="tag">--</span>
+        </div>
+        <div class="stat-row">
+          <label>使能</label>
+          <span id="val-f-enable" class="tag">--</span>
+        </div>
+      </div>
+
+      <!-- 后车 CAN 反馈面板 -->
+      <div class="panel panel-can">
+        <h3>🔧 后车 CAN</h3>
+        <div class="stat-row">
+          <label>状态</label>
+          <span id="val-r-state" class="tag">--</span>
+        </div>
+        <div class="stat-row">
+          <label>控制</label>
+          <span id="val-r-mode" class="tag">--</span>
+        </div>
+        <div class="stat-row">
+          <label>车速</label>
+          <span id="val-r-speed">--</span>
+          <small>m/s</small>
+        </div>
+        <div class="stat-row">
+          <label>转角</label>
+          <span id="val-r-steer">--</span>
+          <small>rad</small>
+        </div>
+        <div class="stat-row">
+          <label>电池</label>
+          <span id="val-r-batt">--</span>
+          <small>V</small>
+        </div>
+        <div class="stat-row">
+          <label>故障</label>
+          <span id="val-r-fault" class="tag">--</span>
+        </div>
+        <div class="stat-row">
+          <label>M1</label>
+          <span id="val-r-m1">--</span>
+          <small>RPM</small>
+        </div>
+      </div>
+
       <div class="panel">
         <h3>图例</h3>
         <div class="legend">
@@ -129,6 +269,6 @@
     </aside>
   </main>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>

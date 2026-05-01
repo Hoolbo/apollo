@@ -22,5 +22,9 @@
         "delta_min": -0.4,
         "v_max": 10.0,
         "v_min": -1.0
+    },
+    "gamma_feedback": {
+        "_comment": "铰接角反馈补偿: Kp=0 关闭, 建议范围 0.3~1.0",
+        "Kp": 0.5
     }
 }

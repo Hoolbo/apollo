@@ -14,6 +14,15 @@ let trail = [];
 let cilqrTraj = [];
 let globalPath = [];
 
+// 控制指令 & CAN 反馈
+let controlCmd = { v_front: 0, delta_front_deg: 0, v_rear: 0, delta_rear_deg: 0, timestamp: 0 };
+let canFeedback = {
+  front: { speed_kmh: 0, eps_angle_deg: 0, eps_enable: false, motor_enable: false, gear: 'N', driving_mode: 'MANUAL', vcu_error: false },
+  rear: { speed_mps: 0, steer_angle_rad: 0, vehicle_state: 'UNKNOWN', control_mode: 'UNKNOWN', battery_v: 0, fault_high: 0, fault_low: 0, motor1_rpm: 0, motor1_current_a: 0 }
+};
+let hasChassisDetail = false;
+let moduleStatus = {};  // { gnss: true/false, localization: true/false, ... }
+
 // 视图状态
 let camera = { x: 0, y: 0, zoom: 5.0 };  // zoom = pixels per meter
 let isDragging = false;
@@ -597,66 +606,166 @@ function updatePanel() {
   document.getElementById('val-speed').textContent = vehicle.speed.toFixed(2);
   document.getElementById('val-fps').textContent = `${currentFps}/${wsHz}`;
 
+  // GNSS 状态
+  const gnssLabel = (status, prefix) => {
+    const pos = status % 10;
+    const names = {0:'无解',1:'单点',2:'差分',4:'RTK固定',5:'RTK浮'};
+    const colors = {0:'#f44',1:'#f44',2:'#fa0',4:'#0f0',5:'#8f0'};
+    const name = names[pos] || `?${pos}`;
+    const color = colors[pos] || '#888';
+    return `<span style="color:${color}">${prefix}:${name}(${status})</span>`;
+  };
+  document.getElementById('val-gnss-front').innerHTML = gnssLabel(vehicle.front_gnss_status || 0, '前');
+  document.getElementById('val-gnss-rear').innerHTML = gnssLabel(vehicle.rear_gnss_status || 0, '后');
+
   if (goalPos) {
     document.getElementById('val-goal-x').textContent = goalPos.x.toFixed(1);
     document.getElementById('val-goal-y').textContent = goalPos.y.toFixed(1);
     const dist = Math.sqrt((vehicle.x - goalPos.x) ** 2 + (vehicle.y - goalPos.y) ** 2);
     document.getElementById('val-dist').textContent = dist.toFixed(1);
   }
+
+  updateControlPanel();
+  updateModuleButtons();
+}
+
+function updateModuleButtons() {
+  document.querySelectorAll('.module-btn[data-module]').forEach(btn => {
+    const name = btn.dataset.module;
+    const alive = moduleStatus[name] || false;
+    btn.classList.toggle('active', alive);
+  });
+}
+
+function updateControlPanel() {
+  // MPC 控制指令
+  const el = (id) => document.getElementById(id);
+  el('val-cmd-vf').textContent = controlCmd.v_front.toFixed(2);
+  el('val-cmd-df').textContent = controlCmd.delta_front_deg.toFixed(1);
+  el('val-cmd-vr').textContent = controlCmd.v_rear.toFixed(2);
+  el('val-cmd-dr').textContent = controlCmd.delta_rear_deg.toFixed(1);
+
+  // 前车 CAN 反馈
+  const f = canFeedback.front;
+  el('val-f-speed').textContent = f.speed_kmh.toFixed(1);
+  el('val-f-eps').textContent = f.eps_angle_deg.toFixed(1);
+
+  const gearEl = el('val-f-gear');
+  gearEl.textContent = f.gear;
+  gearEl.className = 'tag' + (f.gear === 'D' || f.gear === 'R' ? ' tag-ok' : '');
+
+  const modeEl = el('val-f-mode');
+  modeEl.textContent = f.driving_mode;
+  modeEl.className = 'tag' + (f.driving_mode === 'AUTO' ? ' tag-ok' : f.driving_mode === 'REMOTE' ? ' tag-warn' : '');
+
+  const enableEl = el('val-f-enable');
+  const bothEnable = f.eps_enable && f.motor_enable;
+  enableEl.textContent = bothEnable ? 'ON' : 'OFF';
+  enableEl.className = 'tag' + (bothEnable ? ' tag-ok' : ' tag-warn');
+
+  // 后车 CAN 反馈
+  const r = canFeedback.rear;
+  el('val-r-speed').textContent = r.speed_mps.toFixed(3);
+  el('val-r-steer').textContent = r.steer_angle_rad.toFixed(3);
+  el('val-r-batt').textContent = r.battery_v.toFixed(1);
+  el('val-r-m1').textContent = `${r.motor1_rpm}`;
+
+  const stateEl = el('val-r-state');
+  stateEl.textContent = r.vehicle_state;
+  stateEl.className = 'tag' + (r.vehicle_state === 'NORMAL' ? ' tag-ok' : r.vehicle_state === 'E-STOP' ? ' tag-warn' : r.vehicle_state === 'FAULT' ? ' tag-err' : '');
+
+  const rModeEl = el('val-r-mode');
+  rModeEl.textContent = r.control_mode;
+  rModeEl.className = 'tag' + (r.control_mode === 'CAN' ? ' tag-ok' : r.control_mode === 'REMOTE' ? ' tag-warn' : '');
+
+  const faultEl = el('val-r-fault');
+  const hasFault = r.fault_high !== 0 || r.fault_low !== 0;
+  faultEl.textContent = hasFault ? `H:${r.fault_high} L:${r.fault_low}` : 'OK';
+  faultEl.className = 'tag' + (hasFault ? ' tag-err' : ' tag-ok');
 }
 
 setInterval(updatePanel, 200);
 
 
 // ═══════════════════════════════════════════════════════════
-//  WebSocket
+//  数据连接（WebSocket 优先，HTTP 轮询后备）
 // ═══════════════════════════════════════════════════════════
 
+let wsFailCount = 0;
+let usePolling = false;
+let pollTimer = null;
+
+function handleStateData(data) {
+  if (data.type === 'init') {
+    vehicleParams = data.vehicle_params;
+    hasChassisDetail = data.has_chassis_detail || false;
+    console.log('Vehicle params:', vehicleParams, 'chassis_detail:', hasChassisDetail);
+    return;
+  }
+  wsMessageCount++;
+  if (data.vehicle) vehicle = data.vehicle;
+  if (data.trail) trail = data.trail;
+  if (data.cilqr_traj) cilqrTraj = data.cilqr_traj;
+  if (data.global_path && data.global_path.length > 0) {
+    if (data.global_path.length !== lastGlobalPathLen) {
+      showToast(`✅ 全局路径规划成功 (${data.global_path.length} 个点)`);
+      lastGlobalPathLen = data.global_path.length;
+    }
+    globalPath = data.global_path;
+  }
+  if (data.control_cmd) controlCmd = data.control_cmd;
+  if (data.can_feedback) canFeedback = data.can_feedback;
+  if (data.module_status) moduleStatus = data.module_status;
+}
+
 function connectWS() {
+  if (usePolling) return;  // 已切换到轮询模式
+
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
   ws = new WebSocket(`${protocol}//${location.host}/ws`);
 
   ws.onopen = () => {
+    wsFailCount = 0;
     document.getElementById('ws-status').className = 'ws-badge connected';
-    document.getElementById('ws-status').textContent = '● 已连接';
+    document.getElementById('ws-status').textContent = '● WS已连接';
     console.log('WebSocket connected');
   };
 
   ws.onmessage = (e) => {
-    const data = JSON.parse(e.data);
-
-    if (data.type === 'init') {
-      vehicleParams = data.vehicle_params;
-      console.log('Vehicle params:', vehicleParams);
-      return;
-    }
-
-    wsMessageCount++;
-
-    if (data.vehicle) {
-      vehicle = data.vehicle;
-    }
-    if (data.trail) trail = data.trail;
-    if (data.cilqr_traj) cilqrTraj = data.cilqr_traj;
-    if (data.global_path && data.global_path.length > 0) {
-      if (data.global_path.length !== lastGlobalPathLen) {
-        showToast(`✅ 全局路径规划成功 (${data.global_path.length} 个点)`);
-        lastGlobalPathLen = data.global_path.length;
-      }
-      globalPath = data.global_path;
-    }
+    handleStateData(JSON.parse(e.data));
   };
 
   ws.onclose = () => {
-    document.getElementById('ws-status').className = 'ws-badge disconnected';
-    document.getElementById('ws-status').textContent = '● 断开';
-    console.log('WebSocket disconnected, reconnecting in 2s...');
-    setTimeout(connectWS, 2000);
+    wsFailCount++;
+    console.log(`WebSocket disconnected (fail #${wsFailCount})`);
+    if (wsFailCount >= 3) {
+      console.log('WebSocket failed 3 times, switching to HTTP polling');
+      startPolling();
+    } else {
+      document.getElementById('ws-status').className = 'ws-badge disconnected';
+      document.getElementById('ws-status').textContent = '● 重连中...';
+      setTimeout(connectWS, 2000);
+    }
   };
 
   ws.onerror = () => {
     ws.close();
   };
+}
+
+function startPolling() {
+  usePolling = true;
+  document.getElementById('ws-status').className = 'ws-badge connected';
+  document.getElementById('ws-status').textContent = '● HTTP轮询';
+  console.log('HTTP polling started (200ms interval)');
+
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(() => {
+    fetch('/api/state')
+      .then(r => r.json())
+      .then(data => handleStateData(data))
+      .catch(() => {});
+  }, 200);  // 5Hz
 }
 
 
@@ -778,7 +887,7 @@ function toggleModule(name) {
     body: JSON.stringify({ name, action }),
   }).then(r => r.json()).then(d => {
     if (d.status === 'ok') {
-      btn.classList.toggle('active');
+      showToast(`${name}: ${action === 'start' ? '启动中...' : '已停止'}`);
     }
   });
 }
@@ -810,12 +919,212 @@ function resetView() {
   document.getElementById('btn-follow').classList.add('active');
 }
 
+// 急停
+function emergencyStop() {
+  if (!confirm('确认发送急停指令？')) return;
+  fetch('/api/emergency', { method: 'POST' })
+    .then(r => r.json())
+    .then(d => {
+      showToast('🛑 急停指令已发送!', 3000);
+      console.log('Emergency stop:', d);
+    })
+    .catch(e => showToast('❌ 急停发送失败', 3000));
+}
+
 // 暴露到全局
 window.toggleModule = toggleModule;
 window.toggleGoalMode = toggleGoalMode;
 window.toggleStartMode = toggleStartMode;
 window.toggleFollow = toggleFollow;
 window.resetView = resetView;
+window.emergencyStop = emergencyStop;
+
+
+// ═══════════════════════════════════════════════════════════
+//  录包 & 回放
+// ═══════════════════════════════════════════════════════════
+
+let isRecording = false;
+let recordStartTime = 0;
+
+function toggleRecord() {
+  if (!isRecording) {
+    fetch('/api/record/start', {method: 'POST'})
+      .then(r => r.json())
+      .then(d => {
+        isRecording = true;
+        recordStartTime = Date.now();
+        document.getElementById('btn-record').classList.add('recording');
+        document.getElementById('btn-record').innerHTML = '⏹ 停止录包';
+        showToast('⏺ 开始录包...');
+      });
+  } else {
+    fetch('/api/record/stop', {method: 'POST'})
+      .then(r => r.json())
+      .then(d => {
+        isRecording = false;
+        document.getElementById('btn-record').classList.remove('recording');
+        document.getElementById('btn-record').innerHTML = '⏺ 录包';
+        if (d.frames > 0) {
+          showToast(`⏹ 录包完成: ${d.frames}帧, ${d.duration}秒`, 3000);
+        }
+      });
+  }
+}
+
+// 回放状态
+let pbData = null;    // {frames: [...]}
+let pbIndex = 0;
+let pbPlaying = false;
+let pbSpeed = 1.0;
+let pbTimer = null;
+let pbLivePaused = false;
+
+function showRecordings() {
+  fetch('/api/records')
+    .then(r => r.json())
+    .then(files => {
+      if (files.length === 0) {
+        showToast('没有录包文件', 2000);
+        return;
+      }
+      const items = files.map(f =>
+        `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #334">
+          <span style="color:#8cf;cursor:pointer" onclick="loadRecording('${f.name}')">${f.name}</span>
+          <span style="color:#888">${f.size_kb}KB</span>
+        </div>`
+      ).join('');
+      // 简单弹窗
+      let dialog = document.getElementById('rec-dialog');
+      if (!dialog) {
+        dialog = document.createElement('div');
+        dialog.id = 'rec-dialog';
+        dialog.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a2035;border:1px solid #445;border-radius:8px;padding:20px;z-index:200;min-width:320px;max-height:400px;overflow:auto;box-shadow:0 8px 32px rgba(0,0,0,0.5)';
+        document.body.appendChild(dialog);
+      }
+      dialog.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3 style="margin:0;color:#fff">📂 录包列表</h3>
+          <button onclick="document.getElementById('rec-dialog').style.display='none'" style="background:none;border:none;color:#888;font-size:1.2rem;cursor:pointer">✕</button>
+        </div>
+        ${items}
+      `;
+      dialog.style.display = 'block';
+    });
+}
+
+function loadRecording(filename) {
+  const dialog = document.getElementById('rec-dialog');
+  if (dialog) dialog.style.display = 'none';
+  showToast('加载录包中...', 2000);
+
+  fetch(`/api/record/${filename}`)
+    .then(r => r.json())
+    .then(data => {
+      pbData = data;
+      pbIndex = 0;
+      pbPlaying = false;
+      pbSpeed = 1.0;
+
+      // 暂停实时数据
+      pbLivePaused = true;
+      if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+
+      // 显示回放条
+      const bar = document.getElementById('playback-bar');
+      bar.style.display = 'flex';
+      document.getElementById('pb-slider').max = data.frames.length - 1;
+      document.getElementById('pb-play').textContent = '▶';
+      updatePlaybackTime();
+
+      // 加载第一帧
+      applyPlaybackFrame(0);
+      showToast(`已加载: ${data.frame_count}帧, ${data.duration}秒`, 2000);
+    })
+    .catch(() => showToast('加载失败', 2000));
+}
+
+function applyPlaybackFrame(idx) {
+  if (!pbData || idx < 0 || idx >= pbData.frames.length) return;
+  pbIndex = idx;
+  const frame = pbData.frames[idx];
+  handleStateData(frame);
+  document.getElementById('pb-slider').value = idx;
+  updatePlaybackTime();
+}
+
+function updatePlaybackTime() {
+  if (!pbData) return;
+  const current = pbData.frames[pbIndex]?.t || 0;
+  const total = pbData.duration || 0;
+  const fmt = (s) => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+  document.getElementById('pb-time').textContent = `${fmt(current)} / ${fmt(total)}`;
+}
+
+function playbackToggle() {
+  if (!pbData) return;
+  pbPlaying = !pbPlaying;
+  document.getElementById('pb-play').textContent = pbPlaying ? '⏸' : '▶';
+
+  if (pbPlaying) {
+    pbTimer = setInterval(() => {
+      if (pbIndex < pbData.frames.length - 1) {
+        applyPlaybackFrame(pbIndex + 1);
+      } else {
+        pbPlaying = false;
+        document.getElementById('pb-play').textContent = '▶';
+        clearInterval(pbTimer);
+      }
+    }, 200 / pbSpeed);  // 5fps * speed
+  } else {
+    if (pbTimer) { clearInterval(pbTimer); pbTimer = null; }
+  }
+}
+
+function playbackSeek(val) {
+  applyPlaybackFrame(parseInt(val));
+}
+
+function playbackSpeed(val) {
+  pbSpeed = parseFloat(val);
+  if (pbPlaying) {
+    if (pbTimer) clearInterval(pbTimer);
+    pbTimer = setInterval(() => {
+      if (pbIndex < pbData.frames.length - 1) {
+        applyPlaybackFrame(pbIndex + 1);
+      } else {
+        pbPlaying = false;
+        document.getElementById('pb-play').textContent = '▶';
+        clearInterval(pbTimer);
+      }
+    }, 200 / pbSpeed);
+  }
+}
+
+function playbackStop() {
+  pbPlaying = false;
+  pbData = null;
+  if (pbTimer) { clearInterval(pbTimer); pbTimer = null; }
+  document.getElementById('playback-bar').style.display = 'none';
+
+  // 恢复实时数据
+  pbLivePaused = false;
+  if (usePolling) {
+    startPolling();
+  } else {
+    wsFailCount = 0;
+    connectWS();
+  }
+  showToast('已退出回放，恢复实时数据');
+}
+
+window.toggleRecord = toggleRecord;
+window.showRecordings = showRecordings;
+window.loadRecording = loadRecording;
+window.playbackToggle = playbackToggle;
+window.playbackSeek = playbackSeek;
+window.playbackSpeed = playbackSpeed;
+window.playbackStop = playbackStop;
 
 
 // ═══════════════════════════════════════════════════════════

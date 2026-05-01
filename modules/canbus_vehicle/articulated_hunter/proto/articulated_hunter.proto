@@ -1,0 +1,216 @@
+syntax = "proto2";
+
+package apollo.canbus;
+
+import "modules/common_msgs/basic_msgs/header.proto";
+
+// ============================================
+// Articulated Hunter Vehicle Protocol
+// 主车(mycar) + 从车(hunter) 统一控制
+// ============================================
+
+message ArticulatedHunter {
+  optional apollo.common.Header header = 1;
+  
+  // ====== 主车(Mycar) 控制协议 ======
+  optional ArticulatedHunterAcuEps547 acu_eps_547 = 2;              // 主车转向控制
+  optional ArticulatedHunterAcuDrivemotor563 acu_drivemotor_563 = 3; // 主车驱动控制
+  optional ArticulatedHunterEpsAcu556 eps_acu_556 = 4;              // 主车转向反馈
+  optional ArticulatedHunterDrivemotorAcu572 drivemotor_acu_572 = 5; // 主车驱动反馈
+  optional ArticulatedHunterVcuAcuGeneral524 vcu_acu_general_524 = 6; // 主车VCU反馈
+  
+  // ====== 从车(Hunter) 控制协议 ======
+  optional ArticulatedHunterMotionCommand111 motion_command_111 = 7;     // 从车驱动控制
+  optional ArticulatedHunterChassisStatus211 chassis_status_211 = 8;     // 从车底盘状态
+  optional ArticulatedHunterMotionFeedback221 motion_feedback_221 = 9;   // 从车运动反馈
+  optional ArticulatedHunterMotorFeedbackHigh1251 motor_feedback_high_1_251 = 10;  // 从车电机反馈1
+  optional ArticulatedHunterMotorFeedbackHigh2252 motor_feedback_high_2_252 = 11;  // 从车电机反馈2
+  optional ArticulatedHunterMotorFeedbackHigh3253 motor_feedback_high_3_253 = 12;  // 从车电机反馈3
+  optional ArticulatedHunterMotorFeedbackLow1261 motor_feedback_low_1_261 = 13;    // 从车电机反馈4
+  optional ArticulatedHunterMotorFeedbackLow2262 motor_feedback_low_2_262 = 14;    // 从车电机反馈5
+  optional ArticulatedHunterMotorFeedbackLow3263 motor_feedback_low_3_263 = 15;    // 从车电机反馈6
+  optional ArticulatedHunterControlModeSet421 control_mode_set_421 = 16; // 从车控制模式设置
+  optional ArticulatedHunterErrorClearCommand441 error_clear_command_441 = 17; // 从车错误清除
+}
+
+// ====== 主车(Mycar) 协议定义 ======
+
+message ArticulatedHunterAcuEps547 {
+  optional bool eps_enable = 1;
+  optional double eps_angle = 2; // deg
+  optional double eps_angle_speed = 3; // Unused in current spec
+}
+
+message ArticulatedHunterAcuDrivemotor563 {
+  optional double drive_motor_torque = 1;
+  optional double drive_motor_speed = 2; // km/h
+  enum ShiftType {
+    SHIFT_P = 0;
+    SHIFT_D = 1;
+    SHIFT_R = 2;
+    SHIFT_N = 3;
+  }
+  optional ShiftType drive_motor_shift = 3;
+  optional bool drive_motor_mode = 4; // 0: Speed, 1: Torque
+  optional bool drive_motor_enable = 5;
+}
+
+message ArticulatedHunterEpsAcu556 {
+  optional int32 eps_error = 1;
+  optional bool eps_enable = 2;
+  optional double eps_angle = 3; // deg
+  optional double eps_angle_speed = 4; // Unused in current spec
+}
+
+message ArticulatedHunterDrivemotorAcu572 {
+  optional double drive_motor_torque = 1;
+  optional double drive_motor_speed = 2; // km/h
+  enum ShiftType {
+    SHIFT_P = 0;
+    SHIFT_D = 1;
+    SHIFT_R = 2;
+    SHIFT_N = 3;
+  }
+  optional ShiftType drive_motor_shift = 3;
+  optional bool drive_motor_reply = 4;
+  optional bool drive_motor_mode = 5;
+  optional bool drive_motor_lock = 6;
+  optional bool drive_motor_enable = 7;
+  optional bool drive_motor_stop = 8;
+}
+
+message ArticulatedHunterVcuAcuGeneral524 {
+  optional bool acu_error = 1;
+  optional bool acu_remote_control = 2;
+  optional bool acu_receive_info = 3;
+  optional bool acu_control_mode = 4;
+}
+
+// ====== 从车(Hunter) 协议定义 ======
+
+message ArticulatedHunterMotionCommand111 {
+// Control Message
+  // [m/s] [-4800|4800]
+  optional double target_speed = 1;
+  // [rad] [-400|400]
+  optional double target_steer_angle = 2;
+}
+
+message ArticulatedHunterChassisStatus211 {
+// Report Message
+  enum Vehicle_stateType {
+    VEHICLE_STATE_NORMAL = 0;
+    VEHICLE_STATE_EMERGENCYSTOP = 1;
+    VEHICLE_STATE_SYSTEMFAULT = 2;
+  }
+  enum Control_modeType {
+    CONTROL_MODE_STANDBY = 0;
+    CONTROL_MODE_CANCONTROL = 1;
+    CONTROL_MODE_REMOTE = 2;
+  }
+  // [] [0|255]
+  optional Vehicle_stateType vehicle_state = 1;
+  // [] [0|255]
+  optional Control_modeType control_mode = 2;
+  // [V] [0|65535]
+  optional double battery_voltage = 3;
+  // [] [0|255]
+  optional int32 fault_high = 4;
+  // [] [0|255]
+  optional int32 fault_low = 5;
+  // [] [0|255]
+  optional int32 reserved_6 = 6;
+  // [] [0|255]
+  optional int32 message_count = 7;
+}
+
+message ArticulatedHunterMotionFeedback221 {
+// Report Message
+  // [m/s] [-32768|32767]
+  optional double linear_speed = 1;
+  // [rad] [-32768|32767]
+  optional double steering_angle = 2;
+}
+
+message ArticulatedHunterMotorFeedbackHigh1251 {
+// Report Message
+  // [RPM] [-32768|32767]
+  optional int32 motor1_speed = 1;
+  // [A] [-32768|32767]
+  optional double motor1_current = 2;
+}
+
+message ArticulatedHunterMotorFeedbackHigh2252 {
+// Report Message
+  // [RPM] [-32768|32767]
+  optional int32 motor2_speed = 1;
+  // [A] [-32768|32767]
+  optional double motor2_current = 2;
+}
+
+message ArticulatedHunterMotorFeedbackHigh3253 {
+// Report Message
+  // [RPM] [-32768|32767]
+  optional int32 motor3_speed = 1;
+  // [A] [-32768|32767]
+  optional double motor3_current = 2;
+}
+
+message ArticulatedHunterMotorFeedbackLow1261 {
+// Report Message
+  // [V] [0|65535]
+  optional double driver_voltage_1 = 1;
+  // [degC] [-32768|32767]
+  optional int32 driver_temp_1 = 2;
+  // [degC] [-128|127]
+  optional int32 motor_temp_1 = 3;
+  // [] [0|255]
+  optional int32 driver_status_1 = 4;
+}
+
+message ArticulatedHunterMotorFeedbackLow2262 {
+// Report Message
+  // [V] [0|65535]
+  optional double driver_voltage_2 = 1;
+  // [degC] [-32768|32767]
+  optional int32 driver_temp_2 = 2;
+  // [degC] [-128|127]
+  optional int32 motor_temp_2 = 3;
+  // [] [0|255]
+  optional int32 driver_status_2 = 4;
+}
+
+message ArticulatedHunterMotorFeedbackLow3263 {
+// Report Message
+  // [V] [0|65535]
+  optional double driver_voltage_3 = 1;
+  // [degC] [-32768|32767]
+  optional int32 driver_temp_3 = 2;
+  // [degC] [-128|127]
+  optional int32 motor_temp_3 = 3;
+  // [] [0|255]
+  optional int32 driver_status_3 = 4;
+}
+
+message ArticulatedHunterControlModeSet421 {
+// Control Message
+  enum Mode_setType {
+    MODE_SET_STANDBY = 0;
+    MODE_SET_CANCONTROL = 1;
+    MODE_SET_TOSTANDBY = 2;
+  }
+  // [] [0|2]
+  optional Mode_setType mode_set = 1;
+}
+
+message ArticulatedHunterErrorClearCommand441 {
+// Control Message
+  enum Clear_codeType {
+    CLEAR_CODE_CLEARTURNFAULT = 4;
+    CLEAR_CODE_CLEARRBFAULT = 5;
+    CLEAR_CODE_CLEARLBFAULT = 6;
+    CLEAR_CODE_CLEARALL = 255;
+  }
+  // [] [0|255]
+  optional Clear_codeType clear_code = 1;
+}

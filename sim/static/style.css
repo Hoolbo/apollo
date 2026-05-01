@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   铰接车实时可视化 - 深色主题
+   铰接车实时可视化 - 深色主题 (实车 + 仿真通用)
    ═══════════════════════════════════════════════════════════ */
 
 :root {
@@ -130,6 +130,29 @@ body {
   background: rgba(0, 210, 255, 0.1);
 }
 
+/* 急停按钮 */
+.emergency-btn {
+  border-color: var(--danger) !important;
+  color: var(--danger) !important;
+  font-weight: 600;
+  background: rgba(255, 68, 68, 0.08);
+}
+
+.emergency-btn:hover {
+  background: rgba(255, 68, 68, 0.25) !important;
+  box-shadow: 0 0 12px rgba(255, 68, 68, 0.3);
+}
+
+.tool-btn.recording {
+  border-color: var(--danger) !important;
+  color: var(--danger) !important;
+  animation: rec-pulse 1s infinite;
+}
+@keyframes rec-pulse {
+  0%, 100% { background: rgba(255, 68, 68, 0.1); }
+  50% { background: rgba(255, 68, 68, 0.3); }
+}
+
 .separator {
   width: 1px;
   height: 24px;
@@ -181,7 +204,7 @@ main {
   position: absolute;
   right: 12px;
   top: 60px;
-  width: 180px;
+  width: 200px;
   padding: 10px;
   background: rgba(18, 18, 42, 0.92);
   backdrop-filter: blur(12px);
@@ -189,7 +212,7 @@ main {
   border-radius: var(--radius);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   overflow-y: auto;
   max-height: calc(100vh - 80px);
   z-index: 50;
@@ -198,7 +221,7 @@ main {
 .panel {
   background: var(--bg-panel);
   border-radius: var(--radius);
-  padding: 12px;
+  padding: 10px;
   border: 1px solid var(--border);
 }
 
@@ -208,7 +231,25 @@ main {
   text-transform: uppercase;
   letter-spacing: 1px;
   color: var(--text-secondary);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
+}
+
+/* 控制指令面板 */
+.panel-control {
+  border-color: rgba(0, 210, 255, 0.2);
+}
+
+.panel-control h3 {
+  color: var(--accent);
+}
+
+/* CAN 反馈面板 */
+.panel-can {
+  border-color: rgba(255, 170, 0, 0.15);
+}
+
+.panel-can h3 {
+  color: var(--warning);
 }
 
 .stat-grid {
@@ -239,6 +280,91 @@ main {
 .stat small {
   font-size: 10px;
   color: var(--text-dim);
+}
+
+/* ── 双列子面板 ── */
+.dual-column {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.sub-panel {
+  padding: 6px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+.sub-panel h4 {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+/* ── 行内统计 ── */
+.stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 0;
+  gap: 4px;
+}
+
+.stat-row label {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-weight: 500;
+  flex-shrink: 0;
+  min-width: 28px;
+}
+
+.stat-row span {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-align: right;
+  flex: 1;
+}
+
+.stat-row small {
+  font-size: 9px;
+  color: var(--text-dim);
+  min-width: 20px;
+  text-align: right;
+}
+
+/* ── 标签 ── */
+.tag {
+  font-size: 10px !important;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.06);
+  display: inline-block;
+}
+
+.tag.tag-ok {
+  color: var(--success) !important;
+  background: rgba(0, 204, 136, 0.12);
+}
+
+.tag.tag-warn {
+  color: var(--warning) !important;
+  background: rgba(255, 170, 0, 0.12);
+}
+
+.tag.tag-err {
+  color: var(--danger) !important;
+  background: rgba(255, 68, 68, 0.15);
+  animation: pulse-err 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-err {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
 /* ── 图例 ── */

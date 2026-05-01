@@ -7,7 +7,7 @@ vehicle_parameter {
 can_card_parameter {
   brand: SOCKET_CAN_RAW
   type: USB_CARD
-  channel_id: CHANNEL_ID_ZERO
+  channel_id: CHANNEL_ID_TWO
   num_ports: 8
   interface: NATIVE
 }

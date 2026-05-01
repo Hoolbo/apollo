@@ -1,11 +1,11 @@
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
-load("//tools/install:install.bzl", "install", "install_src_files")
+load("//tools:apollo_package.bzl", "apollo_cc_library", "apollo_component", "apollo_package")
+load("//tools:cpplint.bzl", "cpplint")
 
 package(default_visibility = ["//visibility:public"])
 
 MPC_COPTS = ['-DMODULE_NAME=\\"mpc_controller\\"']
 
-cc_library(
+apollo_cc_library(
     name = "mpc_controller_component_lib",
     srcs = ["mpc_controller_component.cc"],
     hdrs = ["mpc_controller_component.h"],
@@ -26,10 +26,8 @@ cc_library(
     ],
 )
 
-cc_binary(
+apollo_component(
     name = "libmpc_controller_component.so",
-    linkshared = True,
-    linkstatic = True,
     deps = [":mpc_controller_component_lib"],
 )
 
@@ -42,38 +40,6 @@ filegroup(
     ]) + ["cyberfile.xml"],
 )
 
-install(
-    name = "_install_lib",
-    targets = [":libmpc_controller_component.so"],
-    data = ["cyberfile.xml"],
-    library_dest = "lib/modules/control/mpc_controller",
-    type = "neo",
-    package_path = "modules/control/mpc_controller",
-    visibility = ["//visibility:public"],
-)
+apollo_package()
 
-install(
-    name = "_install_data",
-    data = [":runtime_data"],
-    data_dest = "share/modules/control/mpc_controller",
-    type = "neo",
-    package_path = "modules/control/mpc_controller",
-    visibility = ["//visibility:public"],
-)
-
-install(
-    name = "install",
-    deps = [":_install_lib", ":_install_data"],
-    type = "neo",
-    package_path = "modules/control/mpc_controller",
-    visibility = ["//visibility:public"],
-)
-
-install_src_files(
-    name = "install_src",
-    src_dir = ["."],
-    dest = "src/modules/control/mpc_controller",
-    filter = "*",
-    type = "neo",
-    visibility = ["//visibility:public"],
-)
+cpplint()

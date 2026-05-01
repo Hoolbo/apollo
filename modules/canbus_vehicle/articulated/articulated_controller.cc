@@ -12,6 +12,7 @@
 #include "modules/canbus_vehicle/articulated/protocol/front_acu_drivemotor_563.h"
 #include "modules/canbus_vehicle/articulated/protocol/front_acu_eps_547.h"
 #include "modules/canbus_vehicle/articulated/protocol/rear_control_mode_set_1057.h"
+#include "modules/canbus_vehicle/articulated/protocol/rear_error_clear_command_1089.h"
 #include "modules/canbus_vehicle/articulated/protocol/rear_motion_command_273.h"
 #include "modules/common/configs/vehicle_config_helper.h"
 
@@ -94,6 +95,14 @@ ErrorCode ArticulatedController::Init(
     return ErrorCode::CANBUS_ERROR;
   }
 
+  rear_error_clear_1089_ = dynamic_cast<RearErrorClearCommand1089*>(
+      message_manager_->GetMutableProtocolDataById(
+          RearErrorClearCommand1089::ID));
+  if (rear_error_clear_1089_ == nullptr) {
+    AERROR << "RearErrorClearCommand1089 does not exist in MessageManager!";
+    return ErrorCode::CANBUS_ERROR;
+  }
+
   // Register send messages
   can_sender_->AddMessage(FrontAcuDrivemotor563::ID,
                           front_drive_motor_563_, true);
@@ -102,6 +111,8 @@ ErrorCode ArticulatedController::Init(
                           rear_motion_cmd_273_, true);
   can_sender_->AddMessage(RearControlModeSet1057::ID,
                           rear_mode_set_1057_, true);
+  can_sender_->AddMessage(RearErrorClearCommand1089::ID,
+                          rear_error_clear_1089_, false);
 
   AINFO << "ArticulatedController is initialized.";
 
@@ -140,6 +151,7 @@ void ArticulatedController::AddSendMessage() {
   can_sender_->AddMessage(FrontAcuEps547::ID, front_eps_547_);
   can_sender_->AddMessage(RearMotionCommand273::ID, rear_motion_cmd_273_);
   can_sender_->AddMessage(RearControlModeSet1057::ID, rear_mode_set_1057_);
+  can_sender_->AddMessage(RearErrorClearCommand1089::ID, rear_error_clear_1089_);
 }
 
 // Parse "v_front=X,delta_front=X,v_rear=X,delta_rear=X" from msg string
@@ -157,6 +169,10 @@ bool ArticulatedController::ParseRearCommand(const ControlCommand& cmd,
 }
 
 ErrorCode ArticulatedController::Update(const ControlCommand& command) {
+  // Call base class Update() first — this handles pad_msg processing
+  // (EnableAutoMode / DisableAutoMode) and standard vehicle controls.
+  VehicleController::Update(command);
+
   if (driving_mode() != Chassis::COMPLETE_AUTO_DRIVE &&
       driving_mode() != Chassis::AUTO_SPEED_ONLY &&
       driving_mode() != Chassis::AUTO_STEER_ONLY) {
@@ -184,7 +200,11 @@ ErrorCode ArticulatedController::Update(const ControlCommand& command) {
     Steer(command.steering_target());
   }
 
-  // 4. Rear vehicle: Parse from header.status.msg
+  // 4. Rear vehicle: always keep CAN control mode active
+  rear_mode_set_1057_->set_mode(
+      ArticulatedRearControlModeSet1057::CAN_CONTROL);
+
+  // 5. Rear vehicle: Parse from header.status.msg
   double v_rear = 0.0, delta_rear = 0.0;
   if (ParseRearCommand(command, &v_rear, &delta_rear)) {
     rear_motion_cmd_273_->set_target_speed(v_rear);
@@ -321,10 +341,10 @@ void ArticulatedController::Steer(double angle_deg) {
   // MPC 直接下发前轮转角 (度), 不是百分比
   // 需要乘以转向比得到 EPS 电机角度
   // 符号反转: Apollo 左转(正) → EPS 左转(负)
-  double steer_ratio = vehicle_params_.steer_ratio();  // 6.0
+  double steer_ratio = vehicle_params_.steer_ratio();  // 5.074
   double eps_command = -angle_deg * steer_ratio;
 
-  // 限幅到 EPS 电机物理范围 [-120°, 120°]
+  // 限幅到 EPS 电机物理范围 [-137°, 137°]
   double max_eps_deg = vehicle_params_.max_steer_angle() * 180.0 / M_PI;
   if (eps_command > max_eps_deg) eps_command = max_eps_deg;
   if (eps_command < -max_eps_deg) eps_command = -max_eps_deg;
@@ -379,8 +399,14 @@ void ArticulatedController::Emergency() {
 }
 
 ErrorCode ArticulatedController::EnableAutoMode() {
+  // Always send rear CAN control mode (even if already in auto mode)
+  // because front VCU auto mode doesn't automatically enable the rear vehicle
+  rear_mode_set_1057_->set_mode(
+      ArticulatedRearControlModeSet1057::CAN_CONTROL);
+  can_sender_->Update();
+
   if (driving_mode() == Chassis::COMPLETE_AUTO_DRIVE) {
-    AINFO << "Already in COMPLETE_AUTO_DRIVE mode";
+    AINFO << "Already in COMPLETE_AUTO_DRIVE mode, rear CAN_CONTROL resent";
     return ErrorCode::OK;
   }
 

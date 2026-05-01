@@ -132,6 +132,7 @@ class MpcControllerComponent : public cyber::Component<> {
   MpcParams mpc_params_;
   AckermannParams ack_params_;
   double dt_ = 0.05;
+  double Kp_gamma_ = 0.5;  // gamma feedback compensation gain
 
   // Solver + allocator
   std::unique_ptr<ArticulatedVehicleMPC> mpc_;

@@ -380,6 +380,12 @@ bool MpcControllerComponent::Init() {
     ack_params_.L_wb_rear = rear["wheelbase"].get<double>();
     ack_params_.delta_max_rear = rear["delta_max"].get<double>();
     ack_params_.delta_min_rear = rear["delta_min"].get<double>();
+
+    // Gamma feedback compensation gain
+    if (j.contains("gamma_feedback")) {
+      Kp_gamma_ = j["gamma_feedback"].value("Kp", 0.5);
+      AINFO << "Gamma feedback Kp=" << Kp_gamma_;
+    }
   }
 
   // mpc_params.json
@@ -449,7 +455,7 @@ bool MpcControllerComponent::Init() {
   log_file_ << "time_s,x,y,theta_deg,gamma_deg,"
             << "v_cmd,omega_gamma_cmd,"
             << "v_front,delta_front_deg,v_rear,delta_rear_deg,"
-            << "closest_idx\n";
+            << "closest_idx,gamma_ref,gamma_err,v_rear_comp\n";
 
   // ── Timer ──
   uint32_t period_ms = static_cast<uint32_t>(dt_ * 1000.0);
@@ -644,6 +650,13 @@ void MpcControllerComponent::ControlLoop() {
   }
   auto cmd = allocator_->Allocate(v_cmd, omega_gamma_cmd, gamma);
 
+  // Layer 4: Gamma feedback compensation
+  // 用 γ 跟踪误差微调后车速度，补偿开环映射的不精确
+  double gamma_ref = ref_states(0, 3);  // 期望铰接角
+  double gamma_err = gamma_ref - gamma; // 正值 = γ不够大
+  double v_rear_comp = -Kp_gamma_ * gamma_err;
+  cmd.v_rear += v_rear_comp;
+
   // CSV log
   if (log_file_.is_open()) {
     log_file_ << std::fixed << std::setprecision(4)
@@ -656,7 +669,9 @@ void MpcControllerComponent::ControlLoop() {
               << cmd.delta_front * 180.0 / M_PI << ","
               << cmd.v_rear << ","
               << cmd.delta_rear * 180.0 / M_PI << ","
-              << closest_idx_ << "\n";
+              << closest_idx_ << ","
+              << gamma_ref << "," << gamma_err << ","
+              << v_rear_comp << "\n";
     log_file_.flush();
   }
 

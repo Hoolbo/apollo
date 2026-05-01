@@ -20,6 +20,7 @@ class FrontAcuDrivemotor563;
 class FrontAcuEps547;
 class RearMotionCommand273;
 class RearControlModeSet1057;
+class RearErrorClearCommand1089;
 
 class ArticulatedController final
     : public ::apollo::canbus::VehicleController<
@@ -90,6 +91,7 @@ class ArticulatedController final
   // Rear vehicle control protocols
   RearMotionCommand273* rear_motion_cmd_273_ = nullptr;
   RearControlModeSet1057* rear_mode_set_1057_ = nullptr;
+  RearErrorClearCommand1089* rear_error_clear_1089_ = nullptr;
 };
 
 }  // namespace articulated

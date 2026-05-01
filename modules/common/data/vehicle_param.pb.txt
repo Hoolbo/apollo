@@ -1,5 +1,4 @@
 vehicle_param {
-  brand: ARTICULATED
   vehicle_id {
       other_unique_id: "articulated"
   }
@@ -14,9 +13,9 @@ vehicle_param {
   min_turn_radius: 0.0
   max_acceleration: 3.0
   max_deceleration: -3.0
-  max_steer_angle: 2.0944
+  max_steer_angle: 2.1293
   max_steer_angle_rate: 0.0
-  steer_ratio: 6.0
+  steer_ratio: 5.074
   wheel_base: 0.60
   wheel_rolling_radius: 0.0
   max_abs_speed_when_stopped: 0.1
